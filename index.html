@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>온주변형 무한매수 실전기 (템포 브레이크 가격 명시판)</title>
+    <title>온주변형 무한매수 실전기 (전일종가 1.1배 수정판)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -59,7 +59,6 @@
 
     <h1>온주변형 무한매수 실전기</h1>
 
-    <!-- 1. 초기 세팅 -->
     <div class="card" id="setupCard">
         <div class="card-title">새 사이클 설정</div>
         <div class="input-group"><label>총 운영 시드 ($)</label><input type="number" id="totalSeed" value="100000"></div>
@@ -69,9 +68,8 @@
         <button onclick="startNewCycle()">실전 사이클 시작하기</button>
     </div>
 
-    <!-- 2. 오늘 밤 예약 주문 가이드 -->
     <div class="card" id="liveInputCard" style="display:none;">
-        <div class="card-title"><span id="currentTurnText" class="point">1회차</span> 오늘 밤 LOC 매수 지침</div>
+        <div class="card-title"><span id="currentTurnText" class="point">1회차</span> 오늘 밤 매수 지침</div>
         
         <div class="guide-box" style="border-color: var(--point-color); background-color: rgba(56, 189, 248, 0.05);">
             <div id="recommendOrder">가이드를 로딩 중입니다.</div>
@@ -88,7 +86,6 @@
         </div>
     </div>
 
-    <!-- 3. 현재 진행 현황 -->
     <div class="card" id="statusCard" style="display:none;">
         <div class="card-title">현재 누적 매집 현황</div>
         <div class="table-wrapper">
@@ -109,7 +106,6 @@
         </div>
     </div>
 
-    <!-- 4. 리포트 레코드 -->
     <div class="card">
         <div class="card-title">완료된 사이클 리포트 <span style="font-size:0.75rem; color:var(--accent-color); cursor:pointer;" onclick="clearReports()">기록삭제</span></div>
         <div id="reportContainer"></div>
@@ -152,43 +148,32 @@
         function generateAutoOrderGuide() {
             if (!cycleData) return;
             
-            // 1회차인 경우 자격 제한 조건이 없으므로 진입 가이드 바로 출력
+            // 1회차인 경우 전일종가 기록이 없으므로 기본 진입 가이드 출력
             if (!cycleData.history || cycleData.history.length === 0) {
                 document.getElementById('recommendOrder').innerHTML = `
                     <strong>📢 [1회차 진입] 오늘 밤 MTS 예약 주문:</strong><br>
-                    • 주문 종류: <span class="success">LOC 매수</span> 또는 장중 실시간 매수<br>
+                    • 주문 종류: <span class="success">지정가 또는 LOC 매수</span><br>
                     • 투입 예산: <span class="point">$${cycleData.dailyBudget.toFixed(2)}</span> 이내로 매수 가능한 수량을 입력하십시오.
                 `;
                 return;
             }
 
-            let totalQty = 0; 
-            let totalSpentRaw = 0; 
-            let lastPrice = 0;
+            // 직전회차 체결 가격 추출 (전일 종가로 취급)
+            let lastPrice = cycleData.history[cycleData.history.length - 1].price;
             
-            for(let i = 0; i < cycleData.history.length; i++) {
-                let t = cycleData.history[i];
-                totalQty += t.qty; 
-                totalSpentRaw += (t.qty * t.price); 
-                lastPrice = t.price; 
-            }
+            // 핵심 수정 로직: 전일종가 × 1.1
+            let finalLocPrice = lastPrice * 1.1;
             
-            let currentAvg = totalSpentRaw / totalQty;
-            let qty = Math.floor(cycleData.dailyBudget / lastPrice);
+            // 1회 대당 예산 범위 내에서 해당 가격으로 살 수 있는 안전 수량 계산
+            let qty = Math.floor(cycleData.dailyBudget / finalLocPrice);
             if (qty < 1) qty = 1;
 
-            // 템포 브레이크 통제선 연산 (직전 체결가 대비 -1.5%)
-            let tempoThreshold = lastPrice * (1 - 0.015);
-            
-            // 핵심 변형: 평단가와 템포 브레이크 통제선 중 '더 낮은 가격'을 지정가로 채택하여 혼동 방지
-            let finalLocPrice = Math.min(currentAvg, tempoThreshold);
-
             document.getElementById('recommendOrder').innerHTML = `
-                <strong>📢 오늘 밤 MTS 예약 걸어둘 LOC 매수 가격:</strong><br>
-                • LOC 지정 가격: <span class="accent" style="font-size:1.1rem;">$${finalLocPrice.toFixed(2)}</span><br>
+                <strong>📢 오늘 밤 MTS 예약 걸어둘 매수 가격 (전일종가 × 1.1):</strong><br>
+                • 매수 지정 가격: <span class="accent" style="font-size:1.1rem;">$${finalLocPrice.toFixed(2)}</span><br>
                 • 예약 수량: <span class="point" style="font-size:1.1rem;">${qty}주</span><br><br>
                 <small style="color:var(--text-sub); display:block; margin-top:5px; line-height:1.4;">
-                ※ 이 주문은 종가가 평단가 이하이면서 동시에 직전 체결가 대비 -1.5% 폭락선인 <strong>$${finalLocPrice.toFixed(2)}</strong> 이하로 떨어질 때만 최종 체결되는 무적의 필터링 주문입니다. 조건에 맞지 않으면 알아서 미체결 취소되므로 안심하고 위 가격 그대로 예약해 두십시오.
+                ※ 직전 체결가 <strong>$${lastPrice.toFixed(2)}</strong>의 1.1배인 <strong>$${finalLocPrice.toFixed(2)}</strong> 이하에서 체결을 시도하는 매수 주문 가이드입니다. 
                 </small>
             `;
         }
