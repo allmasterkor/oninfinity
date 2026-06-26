@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>온주변형 무한매수법 가이드</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-color=1.0, user-scalable=no">
+    <title>온주변형 무한매수법 가이드 V2.0</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -13,6 +13,7 @@
             --point-color: #38bdf8;
             --accent-color: #f43f5e;
             --border-color: #334155;
+            --success-color: #10b981;
         }
 
         * {
@@ -129,8 +130,8 @@
         }
 
         .badge {
-            background-color: var(--point-color);
-            color: var(--bg-color);
+            background-color: var(--success-color);
+            color: var(--text-main);
             font-size: 0.75rem;
             font-weight: 700;
             padding: 2px 6px;
@@ -142,47 +143,50 @@
 <body>
 
     <div class="header">
-        <h1>온주변형 무한매수법 V1.0</h1>
-        <p>수학적 나눗셈 기반의 자가방어형 분할매수 가이드</p>
+        <h1>온주변형 무한매수법 V2.0</h1>
+        <p>11개년 백테스트 검증 완료 · 1.10 LOC 최적화 진형</p>
     </div>
 
     <div class="card">
         <div class="card-title">기본 세팅 원칙</div>
         <ul>
-            <li><strong>운영 자금 :</strong>  $100,000 기준 세팅</li>
-            <li><strong>분할 주기 :</strong> 대하락장 방어용 <strong>40분할</strong> 설계</li>
-            <li><strong>하루 예산 :</strong> 총 자금 / 40 (원금 $100,000 기준 <strong>하루 $2500</strong>)</li>
+            <li><strong>운영 자금 :</strong> 투자 총 시드 기준 (예시: $100,000)</li>
+            <li><strong>분할 주기 :</strong> 하락장 철벽 방어용 <strong>40회차</strong> 설계</li>
+            <li><strong>정예군 일일 예산 :</strong> 총 자금 / 40 (원금 $100,000 기준 <strong>하루 $2,500</strong>)</li>
         </ul>
     </div>
 
     <div class="card">
-        <div class="card-title">핵심 매수 공식</div>
+        <div class="card-title">평시 운용 공식 (1회차~40회차)</div>
         <div class="formula-box">
-            <div class="formula">하루 예산 ÷ 현재 주가 = <span>[정수 수량]</span></div>
+            <div class="formula">일일 예산 ÷ 전일 종가 = <span>[정수 수량]</span></div>
         </div>
         <p class="desc-text">
-            매일 밤 하루 예산에서 현재 주가를 나눈 뒤, <strong>소수점 이하는 버리고 정수(온주) 수량만</strong> 산출합니다.
+            매일 낮, 하루 예산에서 전일 종가를 나눈 뒤 **소수점 이하는 무조건 버리고 정수(온주) 수량만** 산출하여 예약 주문을 넣습니다.
         </p>
-        <div class="highlight-box" style="margin-top: 12px; background-color: rgba(56, 189, 248, 0.05); border-left-color: var(--point-color);">
-            <strong>LOC 매수 설정 방식:</strong><br>
-            산출된 정수 수량만큼 주문을 넣되, LOC 설정 가격은 <span style="color: var(--accent-color); font-weight: 700;">[마지막 체결가 -1.5%]</span>로 지정합니다.<br>
-            <span style="font-size: 0.8rem; color: var(--text-sub);">※ 장마감 종가가 해당 가격 이하로 떨어질 때만 매수가 체결됩니다.</span>
+        <div class="highlight-box" style="margin-top: 12px; background-color: rgba(56, 189, 248, 0.05); border-left-color: var(--point-color); color: var(--text-main);">
+            <strong>LOC 1.10 매수 설정 방식:</strong><br>
+            산출된 정수 수량만큼 주문을 넣되, LOC 지정 가격은 <span style="color: var(--point-color); font-weight: 700;">[전일 종가 × 1.10]</span>으로 설정합니다.<br>
+            <span style="font-size: 0.8rem; color: var(--text-sub);">※ 평소 변동성은 당일 종가로 다 흡수하되, +10%를 초과해 미쳐 날뛰는 광기 어린 폭등일만 체결을 거부(취소)하여 최고점 매수를 완벽히 필터링합니다.</span>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-title">시장 대응 메커니즘</div>
-        <ol>
-            <li><strong>주가 고점인 경우 :</strong> 나눗셈 몫이 작아져 자동으로 매수 수량이 제한되고 계좌 뒷단에 <strong>스텔스 현금 버퍼</strong>가 쌓입니다.</li>
-            <li><strong>주가 저점인 경우 :</strong> 나눗셈 몫이 커져 바닥에서 2.2 방식 대비 최대 5배 이상의 <strong>대량 온주 집진 매수</strong>가 가동됩니다.</li>
-        </ol>
+        <div class="card-title">비상시 결사대 운용 (40회 소진 이후)</div>
+        <p class="desc-text" style="margin-bottom: 8px; color: var(--text-main);">
+            연속된 폭락으로 40회차 정예군 예산이 모두 고갈되면 주공의 추가 자금 없이 **자가 생성된 결사대**를 출동시킵니다.
+        </p>
+        <ul>
+            <li><strong>스텔스 버퍼 적립 :</strong> 평소 온주 매수 후 남은 소수점 잔돈들은 버려지지 않고 계좌 뒷단에 <strong>스텔스 버퍼 현금</strong>으로 자동 저축됩니다.</li>
+            <li><strong>결사대 바닥 매수 :</strong> 40회 소진 즉시, 누적된 스텔스 버퍼를 전량 해제하여 <span style="color: var(--accent-color); font-weight:700;">[현재 버퍼 잔액 ÷ 전일 종가]</span> 만큼 추가 LOC 매수(1.10)를 감행해 평단가를 기적적으로 끌어내립니다.</li>
+        </ul>
     </div>
 
     <div class="card">
-        <div class="card-title">익절 가이드 <span class="badge">필수</span></div>
+        <div class="card-title">마무리 익절 청산 원칙 <span class="badge">수익률 +10%</span></div>
         <div class="highlight-box">
-            보유 주식의 <strong>실제 평단가 대비 +10%</strong> 도달 시 전량 기계적 익절(지정가 매도)을 수행합니다.<br>
-            <span style="color: var(--point-color); font-weight:600;">※ 타사 대체 입고 시 반드시 증권 앱에서 평단가를 수동으로 소수점까지 보정해야 알고리즘이 꼬이지 않습니다.</span>
+            보유 주식의 <strong>실제 계좌 평단가 대비 +10%</strong> 도달 시 지정가 매도(또는 GTC 유효주문)로 전량 청산합니다.<br>
+            <span style="color: var(--point-color); font-weight:600;">※ 대승리 청산 후에는 [총 자산 ÷ 40]으로 일일 예산을 재산출하여 즉시 1회차부터 새롭게 출진합니다.</span>
         </div>
     </div>
 
