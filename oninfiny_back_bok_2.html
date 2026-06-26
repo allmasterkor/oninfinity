@@ -2,32 +2,107 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>온주변형 무한매수 복리 재투자 마스터 장부 (2015~2026)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>온주변형 무한매수법 V2.0 복리 마스터 장부 (2015~2026)</title>
     <style>
         :root {
-            --bg-color: #090d16;
-            --card-bg: #111a2e;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
             --text-main: #f8fafc;
-            --text-sub: #64748b;
+            --text-sub: #94a3b8;
             --point-color: #38bdf8;
-            --border-color: #1e293b;
+            --accent-color: #f43f5e;
+            --border-color: #334155;
             --success-color: #10b981;
             --warn-color: #fbbf24;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; line-height: 1.5; }
-        h1 { font-size: 1.4rem; color: var(--point-color); text-align: center; margin-bottom: 4px; font-weight: 700; }
-        .subtitle { text-align: center; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 20px; }
-        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); margin-bottom: 25px; }
-        .summary-box { background-color: rgba(56, 189, 248, 0.08); border: 1px dashed var(--point-color); padding: 15px; border-radius: 8px; font-size: 0.88rem; line-height: 1.6; margin-bottom: 20px; }
-        .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; max-height: 850px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; white-space: nowrap; }
-        th { background-color: #0f172a; color: #94a3b8; padding: 12px 8px; font-weight: 600; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--border-color); }
-        td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); background-color: var(--card-bg); }
-        .year-divider { background-color: #1e293b !important; color: var(--point-color); font-weight: 700; text-align: left; padding-left: 15px; font-size: 0.9rem; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            -webkit-font-smoothing: antialiased;
+        }
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            padding: 20px; 
+            line-height: 1.5; 
+        }
+        h1 { 
+            font-size: 1.5rem; 
+            color: var(--point-color); 
+            text-align: center; 
+            margin-bottom: 6px; 
+            font-weight: 700; 
+            letter-spacing: -0.5px;
+        }
+        .subtitle { 
+            text-align: center; 
+            font-size: 0.85rem; 
+            color: var(--text-sub); 
+            margin-bottom: 24px; 
+        }
+        .card { 
+            background-color: var(--card-bg); 
+            border-radius: 12px; 
+            padding: 20px; 
+            border: 1px solid var(--border-color); 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .summary-box { 
+            background-color: rgba(56, 189, 248, 0.05); 
+            border: 1px dashed var(--point-color); 
+            padding: 16px; 
+            border-radius: 8px; 
+            font-size: 0.88rem; 
+            line-height: 1.7; 
+            margin-bottom: 20px; 
+        }
+        .table-wrapper { 
+            overflow-x: auto; 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            max-height: 750px; 
+            overflow-y: auto; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 0.85rem; 
+            text-align: center; 
+            white-space: nowrap; 
+        }
+        th { 
+            background-color: #0f172a; 
+            color: #94a3b8; 
+            padding: 14px 10px; 
+            font-weight: 600; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            border-bottom: 2px solid var(--border-color); 
+        }
+        td { 
+            padding: 12px 10px; 
+            border-bottom: 1px solid var(--border-color); 
+            background-color: var(--card-bg); 
+            color: #e2e8f0;
+        }
+        .year-divider { 
+            background-color: #0f172a !important; 
+            color: var(--point-color); 
+            font-weight: 700; 
+            text-align: left; 
+            padding-left: 15px; 
+            font-size: 0.9rem; 
+            border-top: 1px solid var(--border-color);
+        }
         .success { color: var(--success-color); font-weight: 600; }
-        .compound-info { color: #f43f5e; font-weight: 600; }
+        .compound-info { color: var(--accent-color); font-weight: 600; }
+        .ongoing-row { background-color: rgba(251, 191, 36, 0.04) !important; }
+        .ongoing-row td { background-color: transparent; border-bottom: 1px solid rgba(251, 191, 36, 0.2); }
     </style>
 </head>
 <body>
@@ -37,10 +112,10 @@
 
     <div class="card">
         <div class="summary-box">
-            • <strong>초기 자본금:</strong> $100,000 (1회차 진입금 $2,500으로 출발)<br>
-            • <strong>복리 운용 규칙:</strong> 매 주기 종료 시 확정 순수익금을 총 시드에 즉시 산입 후 다음 주기 분할금 재계산 (시드/40)<br>
-            • <strong>진입/익절 규칙:</strong> 직전 체결가 × 0.985 이하 LOC 매수 / 평단 대비 +10% 지정가 익절 / 수수료 왕복 0.25% 반영<br>
-            • <strong>복리형 최종 누적 자산 (2026.06.24 장 마감 기준):</strong> <span class="success">$1,046,577.42</span> (순수익만 <span class="success">+$946,577.42</span> 복리 우상향 완료)
+            • <strong>초기 자본금:</strong> $100,000 (1회차 진입금 $2,500으로 최초 출진)<br>
+            • <strong>복리 운용 규칙:</strong> 매 주기 익절 청산 시 확정 순수익금을 총 시드에 즉시 합산 후 다음 주기 하루 예산 전면 재편 (총자산 / 40)<br>
+            • <strong>V2.0 진형 규칙:</strong> 전일 종가 × 1.10 LOC 매수 (정수 온주 매수 후 잔돈은 스텔스 버퍼 적립 및 40회 방전 시 결사대 투입) / 평단 대비 +10% 지정가 GTC 익절 청산<br>
+            • <strong>복리형 최종 누적 자산 (2026.06.24 장 마감 기준):</strong> <span class="success">$1,046,577.42</span> (순수익만 <span class="success">+$946,577.42</span> 복리 가속 우상향 완료)
         </div>
 
         <div class="table-wrapper">
@@ -217,16 +292,18 @@
                     <tr><td>2025년 제127주기</td><td>$24,906.53</td><td>5회차</td><td>$124,532.65</td><td class="success">+$11,799.47</td><td class="compound-info">$1,008,060.72</td></tr>
 
                     <!-- 2026년 -->
-                    <tr><td colspan="6" class="year-divider">📅 2026년 (~6월 24일 기준 최종)</td></tr>
+                    <tr><td colspan="6" class="year-divider">📅 2026년 (~6월 현재 최종)</td></tr>
                     <tr><td>2026년 제128주기</td><td>$25,201.52</td><td>11회차</td><td>$277,216.72</td><td class="success">+$26,266.30</td><td class="compound-info">$1,034,327.02</td></tr>
                     <tr><td>2026년 제129주기</td><td>$25,858.18</td><td>5회차</td><td>$129,290.90</td><td class="success">+$12,250.40</td><td class="compound-info">$1,046,577.42</td></tr>
-                    <tr style="background-color: rgba(251, 191, 36, 0.05);">
-                        <td style="color:var(--warn-color);">2026년 제130주기 (진행형)</td>
+                    
+                    <!-- 실시간 130주기 전술 행 시각화 보완 -->
+                    <tr class="ongoing-row">
+                        <td style="color:var(--warn-color); font-weight:600;">2026년 제130주기 (진행형)</td>
                         <td>$26,164.44</td>
-                        <td>6회차 매집 중</td>
+                        <td style="color:var(--warn-color);">6회차 매집 중</td>
                         <td>$156,986.64</td>
-                        <td style="color:#94a3b8;">평단 대기 중</td>
-                        <td style="color:var(--point-color);">6월 24일 종가 $73.30 기준 실시간 보유 중</td>
+                        <td style="color:var(--text-sub);">평단가 추적 중</td>
+                        <td style="color:var(--point-color); font-weight:600;">종가 $73.30 기준 실시간 진형 운용 중</td>
                     </tr>
                 </tbody>
             </table>
