@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>온주변형 무한매수 실전기 (템포 브레이크 가격 명시판)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --point-color: #38bdf8;
+            --accent-color: #f43f5e;
+            --border-color: #334155;
+            --success-color: #10b981;
+            --warn-color: #fbbf24;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; padding-bottom: 60px; }
+        h1 { font-size: 1.3rem; color: var(--point-color); text-align: center; margin-bottom: 20px; font-weight: 700; }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); }
+        .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px; }
+        .input-group input { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; color: var(--text-main); font-size: 0.95rem; outline: none; }
+        .flex-inputs { display: flex; gap: 8px; }
+        button { width: 100%; background-color: var(--point-color); color: var(--bg-color); border: none; border-radius: 6px; padding: 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
+        button.btn-success { background-color: var(--success-color); color: white; }
+        button.btn-accent { background-color: var(--accent-color); color: white; }
+        .table-wrapper { overflow-x: auto; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th { background-color: var(--bg-color); color: var(--text-sub); padding: 10px 4px; border-bottom: 2px solid var(--border-color); }
+        td { padding: 10px 4px; border-bottom: 1px solid var(--border-color); }
+        .accent { color: var(--accent-color); font-weight: 600; }
+        .point { color: var(--point-color); font-weight: 600; }
+        .success { color: var(--success-color); font-weight: 600; }
+        .warn { color: var(--warn-color); font-weight: 600; }
+        .report-item { background-color: var(--bg-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; font-size: 0.85rem; border-left: 4px solid var(--success-color); }
+        .guide-box { background-color: var(--bg-color); padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; line-height: 1.6; border: 1px solid var(--border-color); }
+        .btn-del { background-color: rgba(244, 63, 94, 0.2); color: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; font-weight: normal; margin-top: 0; width: auto; cursor: pointer; }
+        .btn-del:hover { background-color: var(--accent-color); color: white; }
+    </style>
+</head>
+<body>
+		<nav>
+        <a href="./oninfinty_guide.html">가이드</a>
+        <a href="./oninfiny_back_dan.html">단리백테스트</a>
+        <a href="./oninfiny_back_bok_2.html">복리백테스트</a>
+      </nav>
+
+
+    <h1>온주변형 무한매수 실전기</h1>
+
+    <!-- 1. 초기 세팅 -->
+    <div class="card" id="setupCard">
+        <div class="card-title">새 사이클 설정</div>
+        <div class="input-group"><label>총 운영 시드 ($)</label><input type="number" id="totalSeed" value="6000"></div>
+        <div class="input-group"><label>분할 일수</label><input type="number" id="splitDays" value="40"></div>
+        <div class="input-group"><label>목표 익절 수익률 (%)</label><input type="number" id="targetRate" value="10"></div>
+        <div class="input-group"><label>증권사 수수료율 (%, 편도)</label><input type="number" id="feeRate" value="0.25" step="0.01"></div>
+        <button onclick="startNewCycle()">실전 사이클 시작하기</button>
+    </div>
+
+    <!-- 2. 오늘 밤 예약 주문 가이드 -->
+    <div class="card" id="liveInputCard" style="display:none;">
+        <div class="card-title"><span id="currentTurnText" class="point">1회차</span> 오늘 밤 LOC 매수 지침</div>
+        
+        <div class="guide-box" style="border-color: var(--point-color); background-color: rgba(56, 189, 248, 0.05);">
+            <div id="recommendOrder">가이드를 로딩 중입니다.</div>
+        </div>
+
+        <div class="input-group" style="margin-top: 15px;">
+            <label>☀️ 아침 체결 기록: 실제 체결된 단가 입력 ($)</label>
+            <input type="number" id="executedPrice" placeholder="밤새 실제 체결된 단가를 입력" step="0.01">
+        </div>
+
+        <div class="flex-inputs">
+            <button class="btn-success" onclick="commitTrade()">실제 체결 데이터 장부 기록</button>
+            <button class="btn-accent" onclick="triggerManualExit()">익절 탈출 완료 (사이클 종료)</button>
+        </div>
+    </div>
+
+    <!-- 3. 현재 진행 현황 -->
+    <div class="card" id="statusCard" style="display:none;">
+        <div class="card-title">현재 누적 매집 현황</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>회차</th>
+                        <th>실제체결가</th>
+                        <th>수량</th>
+                        <th>누적수량</th>
+                        <th>현재평단(순수 주가)</th>
+                        <th>목표매도가(+10%)</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="liveTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. 리포트 레코드 -->
+    <div class="card">
+        <div class="card-title">완료된 사이클 리포트 <span style="font-size:0.75rem; color:var(--accent-color); cursor:pointer;" onclick="clearReports()">기록삭제</span></div>
+        <div id="reportContainer"></div>
+    </div>
+
+    <script>
+        let cycleData = null;
+        const MASTER_KEY = 'mm_v6_tempo_cycle';
+        const REPORT_KEY = 'mm_v6_tempo_reports';
+
+        window.onload = function() {
+            displayReports(); 
+            loadActiveCycle(); 
+        };
+
+        function startNewCycle() {
+            const seed = parseFloat(document.getElementById('totalSeed').value);
+            const days = parseInt(document.getElementById('splitDays').value);
+            const rate = parseFloat(document.getElementById('targetRate').value);
+            const fee = parseFloat(document.getElementById('feeRate').value);
+
+            if (isNaN(seed) || isNaN(days) || isNaN(rate) || isNaN(fee)) {
+                alert('모든 값을 올바르게 입력해 주십시오.');
+                return;
+            }
+
+            cycleData = {
+                seed: seed,
+                days: days,
+                rate: rate,
+                feeRate: fee,
+                dailyBudget: seed / days,
+                history: []
+            };
+            
+            saveActiveCycle(); 
+            renderUI();
+        }
+
+        function generateAutoOrderGuide() {
+            if (!cycleData) return;
+            
+            // 1회차인 경우 자격 제한 조건이 없으므로 진입 가이드 바로 출력
+            if (!cycleData.history || cycleData.history.length === 0) {
+                document.getElementById('recommendOrder').innerHTML = `
+                    <strong>📢 [1회차 진입] 오늘 밤 MTS 예약 주문:</strong><br>
+                    • 주문 종류: <span class="success">LOC 매수</span> 또는 장중 실시간 매수<br>
+                    • 투입 예산: <span class="point">$${cycleData.dailyBudget.toFixed(2)}</span> 이내로 매수 가능한 수량을 입력하십시오.
+                `;
+                return;
+            }
+
+            let totalQty = 0; 
+            let totalSpentRaw = 0; 
+            let lastPrice = 0;
+            
+            for(let i = 0; i < cycleData.history.length; i++) {
+                let t = cycleData.history[i];
+                totalQty += t.qty; 
+                totalSpentRaw += (t.qty * t.price); 
+                lastPrice = t.price; 
+            }
+            
+            let currentAvg = totalSpentRaw / totalQty;
+            let qty = Math.floor(cycleData.dailyBudget / lastPrice);
+            if (qty < 1) qty = 1;
+
+            // 템포 브레이크 통제선 연산 (직전 체결가 대비 -1.5%)
+            let tempoThreshold = lastPrice * (1 - 0.015);
+            
+            // 핵심 변형: 평단가와 템포 브레이크 통제선 중 '더 낮은 가격'을 지정가로 채택하여 혼동 방지
+            let finalLocPrice = Math.min(currentAvg, tempoThreshold);
+
+            document.getElementById('recommendOrder').innerHTML = `
+                <strong>📢 오늘 밤 MTS 예약 걸어둘 LOC 매수 가격:</strong><br>
+                • LOC 지정 가격: <span class="accent" style="font-size:1.1rem;">$${finalLocPrice.toFixed(2)}</span><br>
+                • 예약 수량: <span class="point" style="font-size:1.1rem;">${qty}주</span><br><br>
+                <small style="color:var(--text-sub); display:block; margin-top:5px; line-height:1.4;">
+                ※ 이 주문은 종가가 평단가 이하이면서 동시에 직전 체결가 대비 -1.5% 폭락선인 <strong>$${finalLocPrice.toFixed(2)}</strong> 이하로 떨어질 때만 최종 체결되는 무적의 필터링 주문입니다. 조건에 맞지 않으면 알아서 미체결 취소되므로 안심하고 위 가격 그대로 예약해 두십시오.
+                </small>
+            `;
+        }
+
+        function commitTrade() {
+            if (!cycleData) return;
+            const price = parseFloat(document.getElementById('executedPrice').value);
+            if (!price || price <= 0 || isNaN(price)) return alert('실제 체결된 가격을 입력하십시오.');
+
+            let qty = Math.floor(cycleData.dailyBudget / price);
+            if (qty < 1) qty = 1;
+
+            const nextTurn = cycleData.history.length + 1;
+            cycleData.history.push({ turn: nextTurn, price: price, qty: qty });
+
+            saveActiveCycle(); 
+            renderUI();
+            document.getElementById('executedPrice').value = '';
+        }
+
+        function deleteHistoryItem(index) {
+            if (!cycleData) return;
+            if (!confirm((index + 1) + "회차 기록을 장부에서 삭제하시겠습니까?")) return;
+
+            cycleData.history.splice(index, 1);
+
+            for (let i = 0; i < cycleData.history.length; i++) {
+                cycleData.history[i].turn = i + 1;
+            }
+
+            saveActiveCycle();
+            renderUI();
+        }
+
+        function renderUI() {
+            if (!cycleData) {
+                document.getElementById('setupCard').style.display = 'block';
+                document.getElementById('liveInputCard').style.display = 'none';
+                document.getElementById('statusCard').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('setupCard').style.display = 'none';
+            document.getElementById('liveInputCard').style.display = 'block';
+            document.getElementById('statusCard').style.display = 'block';
+
+            const currentTurn = cycleData.history.length + 1;
+            document.getElementById('currentTurnText').innerText = currentTurn + "회차";
+
+            const tbody = document.getElementById('liveTableBody');
+            tbody.innerHTML = '';
+
+            let totalQty = 0; 
+            let totalSpentRaw = 0;
+
+            for(let i = 0; i < cycleData.history.length; i++) {
+                let trade = cycleData.history[i];
+                totalQty += trade.qty;
+                totalSpentRaw += (trade.qty * trade.price); 
+                
+                let currentAvg = totalSpentRaw / totalQty;
+                let sellTarget = currentAvg * (1 + (cycleData.rate / 100));
+
+                const row = `<tr>
+                    <td>${trade.turn}회</td>
+                    <td>$${trade.price.toFixed(2)}</td>
+                    <td class="point">${trade.qty}주</td>
+                    <td>${totalQty}주</td>
+                    <td>$${currentAvg.toFixed(2)}</td>
+                    <td class="accent">$${sellTarget.toFixed(2)}</td>
+                    <td><button class="btn-del" onclick="deleteHistoryItem(${i})">삭제</button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            }
+
+            generateAutoOrderGuide();
+            
+            if (cycleData.history.length >= cycleData.days) {
+                alert('40분할 총탄이 모두 고갈되었습니다. 반등 탈출을 기다리거나 전술적 정산을 고려하십시오.');
+            }
+        }
+
+        function triggerManualExit() {
+            if (!cycleData || cycleData.history.length === 0) return;
+            if (!confirm('익절 탈출에 성공하셨습니까? 종료 리포트를 저장합니다.')) return;
+
+            let totalQty = 0; 
+            let totalSpentRaw = 0;
+            for(let i = 0; i < cycleData.history.length; i++) {
+                let t = cycleData.history[i];
+                totalQty += t.qty; 
+                totalSpentRaw += (t.qty * t.price); 
+            }
+            let avgPrice = totalSpentRaw / totalQty;
+            
+            let currentFeeRate = parseFloat(cycleData.feeRate) / 100;
+            let totalSalesRaw = totalSpentRaw * (1 + (parseFloat(cycleData.rate) / 100)); 
+            let buyFee = totalSpentRaw * currentFeeRate;                     
+            let sellFee = totalSalesRaw * currentFeeRate;                    
+            let totalFeePaid = buyFee + sellFee;                             
+            let netProfit = (totalSalesRaw - totalSpentRaw) - totalFeePaid;   
+
+            let reports = JSON.parse(localStorage.getItem(REPORT_KEY)) || [];
+            reports.push({
+                date: new Date().toLocaleDateString(), 
+                seed: cycleData.seed, 
+                turns: cycleData.history.length,
+                rate: cycleData.rate, 
+                finalAvg: avgPrice.toFixed(2), 
+                finalQty: totalQty, 
+                feePaid: totalFeePaid.toFixed(2),
+                profit: netProfit.toFixed(2)
+            });
+
+            localStorage.setItem(REPORT_KEY, JSON.stringify(reports));
+            localStorage.removeItem(MASTER_KEY);
+            cycleData = null; 
+            renderUI(); 
+            displayReports();
+        }
+
+        function saveActiveCycle() { 
+            localStorage.setItem(MASTER_KEY, JSON.stringify(cycleData)); 
+        }
+        
+        function loadActiveCycle() { 
+            let saved = localStorage.getItem(MASTER_KEY);
+            if (saved) {
+                try {
+                    cycleData = JSON.parse(saved);
+                    renderUI();
+                } catch(e) {
+                    localStorage.removeItem(MASTER_KEY);
+                }
+            }
+        }
+        
+        function displayReports() {
+            const container = document.getElementById('reportContainer'); 
+            container.innerHTML = '';
+            let reports = JSON.parse(localStorage.getItem(REPORT_KEY)) || [];
+            if (reports.length === 0) { container.innerHTML = '<div style="text-align:center; color:var(--text-sub); font-size:0.8rem; padding:15px 0;">완료 레코드가 없습니다.</div>'; return; }
+            reports.reverse().forEach(rep => {
+                let fPaid = parseFloat(rep.feePaid);
+                if(isNaN(fPaid)) fPaid = 0;
+                container.innerHTML += `<div class="report-item">
+                    <div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:4px;">종료일: ${rep.date}</div>
+                    <div><strong>운영 시드:</strong> $${rep.seed} (${rep.turns}회 진행 / 목표 +${rep.rate}%)</div>
+                    <div><strong>최종 평단:</strong> $${rep.finalAvg} (${rep.finalQty}주 매집완료)</div>
+                    <div style="font-size:0.8rem; color:var(--text-sub); margin-top:2px;">제외된 왕복 수수료: $${fPaid.toFixed(2)}</div>
+                    <div style="margin-top:4px;" class="success"><strong>확정 순수익금액(수수료 차감 후):</strong> +$${rep.profit}</div>
+                </div>`;
+            });
+        }
+        function clearReports() { if(confirm('모든 리포트를 청소하시겠습니까?')) { localStorage.removeItem(REPORT_KEY); displayReports(); } }
+    </script>
+</body>
+</html>

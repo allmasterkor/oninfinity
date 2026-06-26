@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>온주변형 무한매수법 가이드</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --point-color: #38bdf8;
+            --accent-color: #f43f5e;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 16px;
+            padding-bottom: 40px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--point-color);
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-top: 6px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            color: var(--text-main);
+        }
+
+        .card-title::before {
+            content: "•";
+            color: var(--point-color);
+            font-size: 1.5rem;
+            margin-right: 8px;
+            line-height: 0;
+        }
+
+        .formula-box {
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            border: 1px dashed var(--point-color);
+            margin: 8px 0;
+        }
+
+        .formula {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--point-color);
+        }
+
+        .formula span {
+            color: var(--accent-color);
+        }
+
+        .desc-text {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+
+        ol, ul {
+            padding-left: 20px;
+            margin-top: 8px;
+        }
+
+        li {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+
+        li strong {
+            color: var(--text-main);
+        }
+
+        .highlight-box {
+            background-color: rgba(244, 63, 94, 0.1);
+            border-left: 4px solid var(--accent-color);
+            padding: 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        .badge {
+            background-color: var(--point-color);
+            color: var(--bg-color);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>온주변형 무한매수법 V1.0</h1>
+        <p>수학적 나눗셈 기반의 자가방어형 분할매수 가이드</p>
+    </div>
+
+    <div class="card">
+        <div class="card-title">기본 세팅 원칙</div>
+        <ul>
+            <li><strong>운영 자금 :</strong>  $6,000 기준 세팅</li>
+            <li><strong>분할 주기 :</strong> 대하락장 방어용 <strong>30분할</strong> 설계</li>
+            <li><strong>하루 예산 :</strong> 총 자금 / 30 (원금 $6,000 기준 <strong>하루 $200</strong>)</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-title">핵심 매수 공식</div>
+        <div class="formula-box">
+            <div class="formula">하루 예산 ÷ 현재 주가 = <span>[정수 수량]</span></div>
+        </div>
+        <p class="desc-text">
+            매일 밤 하루 예산에서 현재 주가를 나눈 뒤, <strong>소수점 이하는 버리고 정수(온주) 수량만</strong> 산출합니다.
+        </p>
+        <div class="highlight-box" style="margin-top: 12px; background-color: rgba(56, 189, 248, 0.05); border-left-color: var(--point-color);">
+            <strong>LOC 매수 설정 방식:</strong><br>
+            산출된 정수 수량만큼 주문을 넣되, LOC 설정 가격은 <span style="color: var(--accent-color); font-weight: 700;">[마지막 체결가 -1.5%]</span>로 지정합니다.<br>
+            <span style="font-size: 0.8rem; color: var(--text-sub);">※ 장마감 종가가 해당 가격 이하로 떨어질 때만 매수가 체결됩니다.</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">시장 대응 메커니즘</div>
+        <ol>
+            <li><strong>주가 고점인 경우 :</strong> 나눗셈 몫이 작아져 자동으로 매수 수량이 제한되고 계좌 뒷단에 <strong>스텔스 현금 버퍼</strong>가 쌓입니다.</li>
+            <li><strong>주가 저점인 경우 :</strong> 나눗셈 몫이 커져 바닥에서 2.2 방식 대비 최대 5배 이상의 <strong>대량 온주 집진 매수</strong>가 가동됩니다.</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <div class="card-title">익절 가이드 <span class="badge">필수</span></div>
+        <div class="highlight-box">
+            보유 주식의 <strong>실제 평단가 대비 +15%</strong> 도달 시 전량 기계적 익절(지정가 매도)을 수행합니다.<br>
+            <span style="color: var(--point-color); font-weight:600;">※ 타사 대체 입고 시 반드시 증권 앱에서 평단가를 수동으로 소수점까지 보정해야 알고리즘이 꼬이지 않습니다.</span>
+        </div>
+    </div>
+
+</body>
+</html>
