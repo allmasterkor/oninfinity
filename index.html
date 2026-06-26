@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>온주변형 무한매수 실전기 (템포 브레이크 가격 명시판)</title>
+    <title>온주변형 무한매수 실전기 (템포 브레이크 가격 명시판 v1.0)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -19,6 +19,12 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
         body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; padding-bottom: 60px; }
+		
+		/* 추가된 메뉴 스타일 */
+        nav { position: fixed; top: 0; left: 0; width: 100%; background: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 0; z-index: 1000; }
+        nav a { color: var(--text-sub); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+        nav a:hover { color: var(--point-color); }
+		
         h1 { font-size: 1.3rem; color: var(--point-color); text-align: center; margin-bottom: 20px; font-weight: 700; }
         .card { background-color: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); }
         .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
