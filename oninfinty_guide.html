@@ -144,7 +144,7 @@
 
     <div class="header">
         <h1>온주변형 무한매수법 V2.0</h1>
-        <p>11개년 백테스트 검증 완료 · 1.10 LOC 최적화 진형</p>
+        <p>11개년 백테스트 검증 완료 · 당일 예산 고정형 LOC 1.10 진형</p>
     </div>
 
     <div class="card">
@@ -152,40 +152,40 @@
         <ul>
             <li><strong>운영 자금 :</strong> 투자 총 시드 기준 (예시: $100,000)</li>
             <li><strong>분할 주기 :</strong> 하락장 철벽 방어용 <strong>40회차</strong> 설계</li>
-            <li><strong>정예군 일일 예산 :</strong> 총 자금 / 40 (원금 $100,000 기준 <strong>하루 $2,500</strong>)</li>
+            <li><strong>정예군 일일 예산 :</strong> 총 자금 / 40 (원금 $100,000 기준 <strong>하루 $2,500 고정</strong>)</li>
         </ul>
     </div>
 
     <div class="card">
         <div class="card-title">평시 운용 공식 (1회차~40회차)</div>
         <div class="formula-box">
-            <div class="formula">일일 예산 ÷ 전일 종가 = <span>[정수 수량]</span></div>
+            <div class="formula">일일 예산 ÷ (전일 종가 × 1.10) = <span>[정수 수량]</span></div>
         </div>
         <p class="desc-text">
-            매일 낮, 하루 예산에서 전일 종가를 나눈 뒤 **소수점 이하는 무조건 버리고 정수(온주) 수량만** 산출하여 예약 주문을 넣습니다.
+            매일 밤, 일일 예산을 **[전일 종가 × 1.10]**으로 나눈 뒤 **소수점 이하는 무조건 버리고 정수(온주) 수량만** 산출하여 예약 주문을 넣습니다.
         </p>
         <div class="highlight-box" style="margin-top: 12px; background-color: rgba(56, 189, 248, 0.05); border-left-color: var(--point-color); color: var(--text-main);">
-            <strong>LOC 1.10 매수 설정 방식:</strong><br>
+            <strong>LOC 매수 설정 방식:</strong><br>
             산출된 정수 수량만큼 주문을 넣되, LOC 지정 가격은 <span style="color: var(--point-color); font-weight: 700;">[전일 종가 × 1.10]</span>으로 설정합니다.<br>
-            <span style="font-size: 0.8rem; color: var(--text-sub);">※ 평소 변동성은 당일 종가로 다 흡수하되, +10%를 초과해 미쳐 날뛰는 광기 어린 폭등일만 체결을 거부(취소)하여 최고점 매수를 완벽히 필터링합니다.</span>
+            <span style="font-size: 0.8rem; color: var(--text-sub);">※ 이 구조는 당일 주가가 최대 +10%로 폭등 마감하더라도 실제 총 지출이 일일 예산($2,500)을 절대로 초과할 수 없도록 설계된 철저한 자금 통제 장치입니다.</span>
         </div>
     </div>
 
     <div class="card">
         <div class="card-title">비상시 결사대 운용 (40회 소진 이후)</div>
         <p class="desc-text" style="margin-bottom: 8px; color: var(--text-main);">
-            연속된 폭락으로 40회차 정예군 예산이 모두 고갈되면 주공의 추가 자금 없이 **자가 생성된 결사대**를 출동시킵니다.
+            연속된 폭락으로 40회차 정예군 예산이 모두 고갈되면, 주공의 외부 자금 수혈 없이 계좌 내부에서 **자가 생성된 스텔스 버퍼**로 회차를 연장 진행합니다.
         </p>
         <ul>
-            <li><strong>스텔스 버퍼 적립 :</strong> 평소 온주 매수 후 남은 소수점 잔돈들은 버려지지 않고 계좌 뒷단에 <strong>스텔스 버퍼 현금</strong>으로 자동 저축됩니다.</li>
-            <li><strong>결사대 바닥 매수 :</strong> 40회 소진 즉시, 누적된 스텔스 버퍼를 전량 해제하여 <span style="color: var(--accent-color); font-weight:700;">[현재 버퍼 잔액 ÷ 전일 종가]</span> 만큼 추가 LOC 매수(1.10)를 감행해 평단가를 기적적으로 끌어내립니다.</li>
+            <li><strong>스텔스 버퍼(현금 잔돈) 폭증 :</strong> 주가가 폭락하는 날에는 실제 마감 종가가 지정가보다 훨씬 낮아지므로, 당일 지출이 $1,800~$2,100 선으로 줄어들며 매회차 수백 달러의 **현금 잔돈이 계좌에 자동 저축**됩니다.</li>
+            <li><strong>버퍼 기반 연장전 집행 :</strong> 40회 소진 즉시, 그동안 하락장에서 아껴둔 막대한 누적 잔돈(스텔스 버퍼 총액)을 확인하고, 이를 **기존 일일 예산($2,500) 단위로 쪼개어 41회차, 42회차 연장 매집**을 평시 공식과 동일하게 집행하여 평단가를 극한으로 낮춥니다.</li>
         </ul>
     </div>
 
     <div class="card">
         <div class="card-title">마무리 익절 청산 원칙 <span class="badge">수익률 +10%</span></div>
         <div class="highlight-box">
-            보유 주식의 <strong>실제 계좌 평단가 대비 +10%</strong> 도달 시 지정가 매도(또는 GTC 유효주문)로 전량 청산합니다.<br>
+            보유 주식의 <strong>실제 계좌 평균단가 대비 +10%</strong> 도달 시 지정가 매도(또는 GTC 유효주문)로 전량 청산합니다.<br>
             <span style="color: var(--point-color); font-weight:600;">※ 대승리 청산 후에는 [총 자산 ÷ 40]으로 일일 예산을 재산출하여 즉시 1회차부터 새롭게 출진합니다.</span>
         </div>
     </div>
