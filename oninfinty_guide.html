@@ -3,260 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>60일선 단판 온주변형법 실전 가이드북</title>
+    <title>TQQQ 변형 무한매수법 운용 가이드</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #38bdf8;
-            --primary-hover: #0ea5e9;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --up-color: #f43f5e;
-            --down-color: #10b981;
-            --border-color: #334155;
+            --primary-color: #2b6cb0;
+            --secondary-color: #319795;
+            --accent-color: #e53e3e;
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --text-color: #2d3748;
+            --border-color: #e2e8f0;
         }
-
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.7;
+            color: var(--text-color);
             background-color: var(--bg-color);
-            color: var(--text-main);
             margin: 0;
             padding: 0;
-            line-height: 1.6;
         }
 
         .container {
             max-width: 800px;
-            margin: 0 auto;
-            padding: 24px 16px;
+            margin: 40px auto;
+            padding: 20px;
         }
 
         header {
             text-align: center;
-            padding: 40px 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 32px;
+            margin-bottom: 40px;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 20px;
         }
 
-        h1 {
+        header h1 {
+            color: var(--primary-color);
+            margin: 0 0 10px 0;
             font-size: 2rem;
-            color: var(--primary);
-            margin: 0 0 8px 0;
-            font-weight: 800;
-            letter-spacing: -0.05em;
         }
 
-        .subtitle {
-            font-size: 1rem;
-            color: var(--text-muted);
+        header p {
+            color: #718096;
             margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
         }
 
         h2 {
-            font-size: 1.35rem;
-            color: var(--primary);
-            border-left: 4px solid var(--primary);
+            color: var(--primary-color);
+            border-left: 5px solid var(--primary-color);
             padding-left: 12px;
-            margin-top: 40px;
-            margin-bottom: 16px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
         }
 
         h3 {
-            font-size: 1.1rem;
-            margin-top: 24px;
-            margin-bottom: 8px;
-            color: #e2e8f0;
-        }
-
-        p, li {
-            color: #cbd5e1;
-            font-size: 0.975rem;
+            color: var(--secondary-color);
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.15rem;
         }
 
         ul, ol {
             padding-left: 20px;
-            margin-bottom: 16px;
+            margin: 10px 0;
         }
 
         li {
-            margin-bottom: 6px;
-        }
-
-        .law-box {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 2px solid var(--up-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 32px;
-        }
-
-        .law-title {
-            color: var(--up-color);
-            font-weight: bold;
-            font-size: 1.1rem;
             margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* 계산기 영역 스타일 */
-        .calculator-section {
-            background-color: var(--card-bg);
-            border: 2px solid var(--primary);
-            border-radius: 16px;
-            padding: 24px;
-            margin: 40px 0;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
-        }
-
-        .calc-title {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        @media (max-width: 600px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #e2e8f0;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 1rem;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .radio-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .radio-btn {
-            border: 1px solid var(--border-color);
-            padding: 14px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            background-color: #1a2236;
-            transition: all 0.2s;
-        }
-
-        .radio-btn.active.up {
-            background-color: var(--up-color);
-            border-color: var(--up-color);
-            color: white;
-        }
-
-        .radio-btn.active.down {
-            background-color: var(--down-color);
-            border-color: var(--down-color);
-            color: white;
-        }
-
-        .results-box {
-            background-color: #111827;
-            border-radius: 10px;
-            padding: 16px;
-            margin-top: 24px;
-            border: 1px solid var(--border-color);
-        }
-
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px dashed var(--border-color);
-        }
-
-        .result-row:last-child {
-            border-bottom: none;
-        }
-
-        .result-val {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .highlight {
-            color: var(--primary);
-        }
-
-        .qty-box {
-            background: rgba(56, 189, 248, 0.08);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .badge {
-            padding: 2px 6px;
+            display: inline-block;
+            padding: 4px 8px;
             border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            margin-left: 6px;
-        }
-        .badge-up { background-color: rgba(244, 63, 94, 0.2); color: #f43f5e; }
-
-        blockquote {
-            margin: 24px 0 0 0;
-            padding: 12px 16px;
-            background: #1e293b;
-            border-left: 4px solid var(--primary);
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            border-radius: 0 8px 8px 0;
-        }
-
-        footer {
-            text-align: center;
-            padding: 40px 0;
-            color: var(--text-muted);
             font-size: 0.85rem;
-            border-top: 1px solid var(--border-color);
-            margin-top: 60px;
+            font-weight: bold;
+            color: #fff;
+            margin-right: 5px;
+        }
+
+        .badge-case-a { background-color: #3182ce; }
+        .badge-case-b { background-color: #dd6b20; }
+        .badge-alert { background-color: var(--accent-color); }
+
+        .callout {
+            background-color: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px;
+            border-radius: 0 4px 4px 0;
+            margin: 15px 0;
+        }
+
+        .callout-warning {
+            background-color: #fff5f5;
+            border-left: 4px solid var(--accent-color);
+            color: #c53030;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .grid-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            .container { margin: 10px auto; padding: 10px; }
+            .section { padding: 20px; }
         }
     </style>
 </head>
@@ -264,212 +136,114 @@
 
 <div class="container">
     <header>
-        <h1>60일선 단판 온주변형법 가이드</h1>
-        <div class="subtitle">25분할 / +25% 익절 무결점 운용 매뉴얼</div>
+        <h1>TQQQ 이평선 가이드 매수법</h1>
+        <p>본 계좌 조기 소진 후 대기 및 서브 계좌 시차 투입 전략</p>
     </header>
 
-    <div class="law-box">
-        <div class="law-title">💡 불변의 제1군령 (단판 판정의 법칙)</div>
-        <p style="margin: 0; font-size: 0.95rem;">
-            새로운 주기가 개시되는 첫날 아침, 대상 종목(TQQQ/SOXL)의 종가와 60일 이동평균선 위치를 <strong>딱 1번만 비교하여 진형을 장전</strong>합니다. 해당 주기가 +25% 수익으로 전량 익절 청산될 때까지는 주가가 위아래로 아무리 요동쳐도 최초 장전된 진형과 배율을 절대 변경하지 않고 끝까지 유지합니다.
-        </p>
+    <div class="section">
+        <h2>1. 계좌 공통 규칙 및 장세 판정</h2>
+        <ul>
+            <li><strong>초기 자산 설정:</strong> 각 계좌별로 독립적인 투자 원금 설정</li>
+            <li><strong>장세 판정 기준 (매일 장 시작 전 갱신):</strong></li>
+        </ul>
+        <div class="grid">
+            <div class="grid-item">
+                <span class="badge badge-case-a">Case A (상승장)</span>
+                <p style="margin: 8px 0 0 0;">전일 종가가 전일 5일 이동평균선보다 크고, 동시에 전일 20일 이동평균선보다도 클 때</p>
+            </div>
+            <div class="grid-item">
+                <span class="badge badge-case-b">Case B (하락장)</span>
+                <p style="margin: 8px 0 0 0;">상승장 조건을 만족하지 못하는 모든 경우 (종가가 이동평균선 아래에 있거나 걸쳐있을 때)</p>
+            </div>
+        </div>
     </div>
 
-    <h2>1. 구조적 핵심 공식</h2>
-    
-    <h3>[1단계] 기준 일일 예산 (E) 산출</h3>
-    <p>새 주기가 개시되는 날 아침, 계좌의 총 투자 가용 자금인 <strong>[통합 총시드]</strong>를 확인하고 이를 무조건 25로 나누어 하루 기준 화력을 확정합니다.</p>
-    <ul>
-        <li><strong>공식:</strong> 기준 일일 예산 = 통합 총시드 / 25</li>
-    </ul>
-
-    <h3>[2단계] 전황별 진형 배율 배치</h3>
-    <p>시작일 아침 60일선 판정 결과에 따라 각 회차별 당일 투입 예산(DE) 강도를 조절합니다.</p>
-    
-    <p><strong>📈 주가 > 60일선 : 기동 순환 진형</strong></p>
-    <ul>
-        <li>1회차 ~ 25회차 전 구간: 기준 일일 예산 * 1.0</li>
-    </ul>
-
-    <p><strong>📉 주가 &lt; 60일선 : 매복 폭격 진형</strong></p>
-    <ul>
-        <li>1회차 ~ 10회차 (지상 매복): 기준 일일 예산 * 0.3 <span style="color:var(--text-muted);">(남은 0.7은 스텔스 버퍼로 적립)</span></li>
-        <li>11회차 ~ 20회차 (지하 1층): 기준 일일 예산 * 1.0</li>
-        <li>21회차 ~ 25회차 (지하 2층 폭격): 기준 일일 예산 * 3.0 <span style="color:var(--primary);">(아껴둔 예산 총동원)</span></li>
-    </ul>
-
-    <div class="calculator-section">
-        <div class="calc-title">⚡ 실전 당일 작전 계산기</div>
+    <div class="section">
+        <h2>2. 본 계좌 운용 규칙 (1회차 ~ 101회차)</h2>
         
-        <div class="grid-2">
-            <div class="form-group">
-                <label for="totalSeed">통합 총시드 ($)</label>
-                <input type="number" id="totalSeed" value="10000" step="100" oninput="calculate()">
-            </div>
-            <div class="form-group">
-                <label for="prevClose">대상 종목 전일 종가 ($)</label>
-                <input type="number" id="prevClose" value="50.00" step="0.01" oninput="calculate()">
-            </div>
+        <h3>가. 분할 매수 단계 (1회차 ~ 약 30회차)</h3>
+        <ul>
+            <li><strong>일일 매수 예산 산정:</strong>
+                <ul>
+                    <li>상승장: 초기 자산 / 25.0</li>
+                    <li>하락장: 초기 자산 / 30.0</li>
+                </ul>
+            </li>
+            <li><strong>회차별 실제 당일 투입 금액 (하락장 Case B 기준 체증식):</strong>
+                <ul>
+                    <li>1회차 ~ 10회차: 일일 매수 예산 * 0.5</li>
+                    <li>11회차 ~ 20회차: 일일 매수 예산 * 0.8</li>
+                    <li>21회차 ~ 30회차: 일일 매수 예산 * 1.7</li>
+                </ul>
+            </li>
+            <li><strong>매수 수량 계산:</strong> 당일 투입 금액 / 전일 종가 (소수점 올림 처리)</li>
+        </ul>
+        
+        <div class="callout">
+            <strong>운영의 묘 필요:</strong> 매수 수량은 전일 종가로 계산되지만 실제 체결은 금일 종가로 이루어지므로, 실제 매수 금액이 당일 예산을 초과할 수 있습니다.
         </div>
 
-        <div class="form-group">
-            <label>주기 시작일 아침 60일선 판정 결과</label>
-            <div class="radio-group">
-                <div id="btnUp" class="radio-btn up active" onclick="setTrend('UP')">📈 상승 진형<br><span style="font-size:11px; font-weight:normal;">주가 > 60일선</span></div>
-                <div id="btnDown" class="radio-btn down" onclick="setTrend('DOWN')">📉 매복 진형<br><span style="font-size:11px; font-weight:normal;">주가 &lt; 60일선</span></div>
-            </div>
-        </div>
+        <ul>
+            <li><strong>매수 체결 조건:</strong> 보유 현금이 매수 대금(매수 수량 * 금일 종가)보다 많아야 하며, 금일 종가 기준 전일 종가 대비 10%를 초과하여 급등하지 않아야 함. (전일 종가 * 1.1 가격으로 LOC 매수 지정가 설정)</li>
+        </ul>
 
-        <div class="form-group">
-            <label for="currentTurn">현재 집행할 매수 회차</label>
-            <select id="currentTurn" onchange="calculate()"></select>
-        </div>
+        <h3>나. 자금 소진 및 대기 단계 (31회차 ~ 100회차)</h3>
+        <ul>
+            <li>보유 현금이 바닥나 매수 조건(현금 부족)을 충족하지 못하므로 <strong>추가 매수 없이 자동 스킵</strong>됩니다.</li>
+            <li>평단가는 30회차 시점의 가격으로 완전히 고착된 채 유지되며 반등을 기다립니다.</li>
+        </ul>
 
-        <div class="results-box">
-            <div class="result-row">
-                <span>하루 기준 예산 (E)</span>
-                <span id="resE" class="result-val">$400.00</span>
-            </div>
-            <div class="result-row">
-                <span>적용 진형 배율</span>
-                <span id="resMultiplier" class="result-val">1.0배</span>
-            </div>
-            <div class="result-row">
-                <span>당일 투입 예산 (DE)</span>
-                <span id="resDE" class="result-val highlight">$400.00</span>
-            </div>
-            <div class="result-row">
-                <span>오늘 밤 LOC 매수 지정가 <span class="badge badge-up">MTS 입력가격</span></span>
-                <span id="resLocPrice" class="result-val" style="color: #f43f5e;">$55.00</span>
-            </div>
-            
-            <div class="qty-box">
-                <span style="font-weight: bold; font-size: 1.05rem;">최종 발주 매수 수량 (Q)</span>
-                <span id="resQty" class="result-val highlight" style="font-size: 1.4rem; color: #38bdf8;">8 주</span>
-            </div>
-        </div>
-
-        <blockquote id="memo">
-            * 소수점 이하는 무조건 절사(버림) 처리됩니다. 체결 평단가 차액과 1주 미만 절사 금액은 계좌에 [순수 스텔스 버퍼]로 안전하게 누적됩니다.
-        </blockquote>
+        <h3>다. 매도 및 청산 단계 (최대 101회차)</h3>
+        <ul>
+            <li><strong>익절 조건:</strong> 당일 장중 최고가가 익절 목표가(당일 기준 상승장인 경우: 20% 익절 목표 (평단가 * 1.2) / 당일 기준 하락장인 경우: 10% 익절 목표 (평단가 * 1.1) )에 도달 시 해당 목표가로 전량 매도 청산.</li>
+            <li><strong>강제 청산 조건:</strong> 101회차 당일까지 익절 조건에 도달하지 못하면, <span class="badge badge-alert">101회차 당일 종가</span>로 보유 주식을 전량 강제 매도(손절)하여 잔여 자금을 현금화합니다.</li>
+            <li> 강제청산 회차의 경우 개인의 인내심 한계그릇에 따릅니다. 2015년부터 2026년 4월까지의 백테스트 시 하기와 같이 나왔습니다. </li>
+				<li>청산일수별 수익률  </li>
+				<li>0	202	7263.23     </li>
+				<li>1	198	6600.58     </li>
+				<li>2	197	6481.09     </li>
+				<li>3	101	6313.79     </li>
+				<li>4	106	6195.80     </li>
+				<li>5	196	6180.19     </li>
+				<li>6	213	6117.86     </li>
+				<li>7	212	5948.81     </li>
+				<li>8	195	5872.84     </li>
+				<li>9	206	5820.90     </li>
+				<li>10	200	5750.72     </li>
+				<li>11	203	5736.84     </li>
+				<li>12	205	5735.95     </li>
+				<li>13	199	5729.42     </li>
+				<li>14	194	5715.26     </li>
+				<li>15	211	5618.17     </li>
+				<li>16	201	5588.45     </li>
+				<li>17	249	5559.92     </li>
+				<li>18	107	5535.47     </li>
+				<li>19	189	5363.13     </li>
+				<li>20	186	5360.16     </li>
+				<li>21	247	5349.12     </li>
+				<li>22	256	5317.16     </li>
+				<li>23	245	5255.69     </li>
+				<li>24	215	5250.22     </li>
+				<li>25	193	5110.48     </li>
+				<li>26	113	5057.36     </li>
+				<li>27	188	5045.01     </li>
+				<li>28	248	5026.29     </li>
+				<li>29	214	5016.58     </li>
+        </ul>
     </div>
 
-    <h2>2. 주문 집행 및 스텔스 버퍼 통제 규칙</h2>
-    
-    <h3>[3단계] 매일 밤 실전 LOC 발주 공식</h3>
-    <ul>
-        <li><strong>LOC 매수 지정가 설정 (공통):</strong> 전일 종가 * 1.1</li>
-        <li><strong>상승 진형 수량 산출:</strong> 당일 투입 예산 / 전일 종가 (소수점 버림)</li>
-        <li><strong>매복 진형 수량 산출:</strong> 당일 투입 예산 / (전일 종가 * 1.1) (소수점 버림)</li>
-    </ul>
-    <p style="color: var(--text-muted); font-size: 0.9rem; padding-left: 20px;">
-        ※ 매복 진형 분모에 1.1을 곱하여 수량을 통제함으로써 밤사이 주가가 급등해도 당일 배정 예산을 절대 초과하지 않으며, 실제 종가가 낮게 체결될 시 발생하는 모든 차액은 예수금에 스텔스 버퍼로 이월됩니다.
-    </p>
-
-    <h3>[4단계] 25회차 소진 시: 스텔스 버퍼 최종 저격</h3>
-    <ol>
-        <li>25회차가 완료되었으나 청산되지 못한 경우, 1~25회차 동안 축적된 <strong>[계좌 내 순수 스텔스 버퍼 총액]</strong>을 확인합니다.</li>
-        <li>26회차 당일 예산으로 버퍼 총액을 전액 투입하여 마지막 저격탄을 쏩니다.</li>
-        <li><strong>26회차 수량 산출:</strong> 26회차 예산 / (전일 종가 * 1.1) (소수점 버림)</li>
-        <li>26회차 집행 후 필연적으로 남는 미세 잔돈은 그대로 보존하고, <strong>27회차부터는 추가 자금 투입 없이 전선을 전격 동결</strong>합니다.</li>
-    </ol>
-
-    <h2>3. 청산 및 자금 리셋 규칙</h2>
-    <h3>[5단계] 평단가 관리 및 복리 이월</h3>
-    <ul>
-        <li><strong>매일 밤 자동 매도 발주:</strong> 매일 밤 장 개시 전, <strong>[계좌 실제 평단가 * 1.25]</strong> 가격으로 보유 주식 전량 지정가 매도 주문을 제출합니다.</li>
-        <li><strong>자금 전액 회수 및 합산:</strong> 주가가 목표 고지를 탈출하여 대청산이 완료되면, <strong>[전량 매도 대금] + [금고에 묶여있던 최종 미세 잔돈]</strong>을 단 1원도 흘리지 않고 싹 긁어모아 다음 주기의 새로운 [통합 총시드]로 장전합니다.</li>
-    </ul>
+    <div class="section">
+        <h2>3. 서브 계좌 운용 규칙</h2>
+        <ul>
+            <li><strong>진입 타이밍:</strong> 본 계좌의 진행 회차가 <strong>정확히 60회차</strong>가 되는 날 가동을 시작합니다.</li>
+            <li><strong>운용 방식:</strong> 본 계좌와 완전히 동일한 장세 판정 및 하락장(Case B) 매수/매도 규칙을 독자적으로 수행합니다.</li>
+        </ul>
+        
+        <div class="callout callout-warning">
+            <strong>주의:</strong> 본 계좌가 60회차에 도달하기 전에 조기 익절 청산될 경우, 서브 계좌 주기는 가동되지 않고 대기 상태를 유지합니다.
+        </div>
+    </div>
 </div>
-
-<footer>
-    위대한 진형은 장수가 칼을 멈추어도, 시스템 스스로가 마지막 잔돈까지 지켜낸다.
-</footer>
-
-<script>
-    let currentTrend = 'UP';
-
-    function updateTurnOptions() {
-        const select = document.getElementById('currentTurn');
-        select.innerHTML = '';
-        let maxTurn = currentTrend === 'DOWN' ? 26 : 25;
-        
-        for(let i = 1; i <= maxTurn; i++) {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.innerText = i === 26 ? '26회차 (스텔스 버퍼 최종 저격)' : i + '회차';
-            select.appendChild(opt);
-        }
-    }
-
-    function setTrend(trend) {
-        currentTrend = trend;
-        document.getElementById('btnUp').classList.toggle('active', trend === 'UP');
-        document.getElementById('btnDown').classList.toggle('active', trend === 'DOWN');
-        updateTurnOptions();
-        calculate();
-    }
-
-    function calculate() {
-        const totalSeed = parseFloat(document.getElementById('totalSeed').value) || 0;
-        const currentTurn = parseInt(document.getElementById('currentTurn').value) || 1;
-        const prevClose = parseFloat(document.getElementById('prevClose').value) || 0;
-
-        const E = totalSeed / 25;
-        document.getElementById('resE').innerText = '$' + E.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-        let multiplier = 1.0;
-        let DE = E;
-
-        if (currentTrend === 'UP') {
-            multiplier = 1.0;
-            DE = E * multiplier;
-            document.getElementById('resMultiplier').innerText = '1.0배 (기동 순환)';
-        } else {
-            if (currentTurn <= 10) {
-                multiplier = 0.3;
-                document.getElementById('resMultiplier').innerText = '0.3배 (지상 매복)';
-            } else if (currentTurn <= 20) {
-                multiplier = 1.0;
-                document.getElementById('resMultiplier').innerText = '1.0배 (지하 1층)';
-            } else if (currentTurn <= 25) {
-                multiplier = 3.0;
-                document.getElementById('resMultiplier').innerText = '3.0배 (지하 2층 폭격)';
-            } else {
-                multiplier = 0;
-                document.getElementById('resMultiplier').innerText = '버퍼 잔돈 전액';
-            }
-            DE = E * multiplier;
-        }
-
-        const locPrice = prevClose * 1.1;
-        document.getElementById('resLocPrice').innerText = '$' + locPrice.toFixed(2);
-
-        let qty = 0;
-        if (prevClose > 0) {
-            if (currentTurn === 26) {
-                document.getElementById('resDE').innerText = '버퍼 총액 전액';
-                document.getElementById('resQty').innerText = '버퍼잔돈 / (전일종가*1.1)';
-                document.getElementById('memo').innerText = '* [경고] 26회차는 그동안 축적된 순수 스텔스 버퍼 총액을 주문 분모(전일종가*1.1)로 나누어 전액 수동 매수하는 최종 사수 단계입니다. 체결 후 남은 잔돈은 청산일까지 금고에 동결 보존합니다.';
-                return;
-            } else {
-                document.getElementById('resDE').innerText = '$' + DE.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                document.getElementById('memo').innerText = '* 소수점 이하는 무조건 절사(버림) 처리됩니다. 체결 평단가 차액과 1주 미만 절사 금액은 계좌에 [순수 스텔스 버퍼]로 안전하게 누적됩니다.';
-                
-                if (currentTrend === 'UP') {
-                    qty = Math.floor(DE / prevClose);
-                } else {
-                    qty = Math.floor(DE / (prevClose * 1.1));
-                }
-            }
-        }
-
-        document.getElementById('resQty').innerText = qty.toLocaleString() + ' 주';
-    }
-
-    updateTurnOptions();
-    calculate();
-</script>
 
 </body>
 </html>
