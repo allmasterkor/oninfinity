@@ -295,7 +295,7 @@
 
         // 3. 수량 및 LOC 지정가 계산
         if (prevClose > 0 && nextTurn <= 30) {
-            const qty = Math.ceil(targetCash / prevClose);
+            const qty = Math.floor(targetCash / prevClose);
             const locPrice = prevClose * 1.1;
             document.getElementById('guide-qty').innerText = qty + " 주";
             document.getElementById('guide-loc-price').innerText = '$ ' + locPrice.toFixed(2);
