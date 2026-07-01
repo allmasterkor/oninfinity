@@ -35,6 +35,7 @@
         th { background: #f1f3f5; }
         .highlight { background-color: #fff3cd; font-weight: bold; padding: 2px 5px; }
         .sell-highlight { background-color: #ffe3e3; font-weight: bold; padding: 2px 5px; color: var(--danger); }
+        .loc-alert { color: #bd2130; font-weight: 800; font-size: 0.95rem; background-color: #f8d7da; padding: 4px 8px; border-radius: 4px; border: 1px solid #f5c6cb; display: inline-block; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -99,7 +100,8 @@
                 <label>최종 매수 수량 (주)</label>
                 <input type="number" id="actualQty" placeholder="실제 매수 체결된 수량 입력 (매수 안했을 시 0)">
             </div>
-            <button onclick="submitDailyTrade()" style="background: var(--success);">💾 체결 기록 및 동기화</button>
+            <button onclick="submitDailyTrade()" style="background: var(--success); margin-bottom: 15px;">💾 체결 기록 및 동기화</button>
+            <button onclick="forceClearCycle()" class="btn-danger" style="background: #bd2130;">🚨 강제 주기 종료 및 손절 정산</button>
         </div>
 
         <div class="card">
@@ -294,11 +296,11 @@
                 <p><b>현재 회차:</b> ${phase} 회차</p>
                 <p><b>금일 매수 예산:</b> $${targetInvest.toFixed(2)}</p>
                 <p class="highlight">🎯 추천 매수: LOC [ ${buyQty} 주 ]</p>
-                <p style="font-size:0.85rem; color:#6c757d;">LOC 제한폭 지정가: $${locPrice.toFixed(2)}</p>
+                <div><span class="loc-alert">📍 LOC 제한폭 지정가: $${locPrice.toFixed(2)}</span></div>
             `;
         }
 
-        // 2. 매도 가이드 연산 (상승장 진입 시 20% 익절, 하락장 진입 시 10% 익절)
+        // 2. 매도 가이드 연산
         let sellGuideHtml = "";
         if (totalShares > 0) {
             let profitTargetMultiplier = startMarketType === "Case A (상승장)" ? 1.20 : 1.10;
@@ -359,7 +361,6 @@
         let profitTargetMultiplier = acc.start_market_type === "Case A (상승장)" ? 1.20 : 1.10;
         let targetPrice = acc.average_price * profitTargetMultiplier;
 
-        // 당일 마감 종가가 목표가 이상일 때 보유 물량이 있다면 익절 청산 처리
         if (actualClose >= targetPrice && acc.total_shares > 0) {
             isCleared = true;
             sellPrice = targetPrice; 
@@ -369,37 +370,7 @@
         }
 
         if (isCleared) {
-            let sellRevenue = acc.total_shares * sellPrice;
-            acc.current_cash += sellRevenue;
-            let finalAsset = acc.current_cash;
-            let totalReturn = ((finalAsset - acc.initial_asset) / acc.initial_asset) * 100;
-
-            const newReport = {
-                cycle: acc.current_cycle,
-                market_case: acc.start_market_type,
-                start_date: acc.start_date,
-                clear_date: tradeDate,
-                settlement_phase: acc.current_phase,
-                buy_amount: acc.total_buy_amount,
-                sell_amount: sellRevenue,
-                sell_price: sellPrice,
-                accumulated_asset: finalAsset,
-                accumulated_return: totalReturn
-            };
-
-            appData.reports.unshift(newReport); 
-
-            alert(`${acc.current_cycle}주기 종료 리포트 생성!\n수익률: ${totalReturn.toFixed(2)}%`);
-
-            acc.initial_asset = finalAsset;
-            acc.current_cash = finalAsset;
-            acc.current_phase = 1;
-            acc.total_shares = 0;
-            acc.average_price = 0;
-            acc.start_market_type = "";
-            acc.start_date = "";
-            acc.total_buy_amount = 0;
-            acc.current_cycle += 1;
+            executeClearance(tradeDate, sellPrice);
         } else {
             acc.current_phase += 1;
             alert(`${acc.current_phase - 1}회차 기록 완료!`);
@@ -415,6 +386,82 @@
         } catch(e) {
             alert("Gist 업데이트에 실패했습니다: " + e.message);
         }
+    }
+
+    // 강제 주기 종료(손절 및 청산) 함수
+    async function forceClearCycle() {
+        const token = localStorage.getItem('gist_token');
+        const gistId = localStorage.getItem('gist_id');
+        if(!token || !gistId) return alert("먼저 Gist 연동 설정을 완료하세요.");
+        
+        const actualClose = parseFloat(document.getElementById('actualClose').value);
+        const tradeDate = document.getElementById('tradeDate').value;
+
+        if(isNaN(actualClose)) {
+            return alert("강제 종료(청산) 정산을 위해 '오늘 실제 체결 종가 ($)' 칸에 기준이 될 현재 주가를 입력해주세요.");
+        }
+
+        let acc = appData.account;
+        if (acc.total_shares === 0 && acc.current_phase === 1) {
+            return alert("현재 진행 중인 매수 주기가 없습니다.");
+        }
+
+        if(!confirm(`⚠️ 정말로 현재 [${acc.current_cycle}주기]를 강제로 종료하시겠습니까?\n보유 중인 ${acc.total_shares}주가 현재 입력한 주가($${actualClose})로 전량 손절/정산 처리됩니다.`)) {
+            return;
+        }
+
+        // 만약 1회차에 바로 강제 종료하는 등의 이유로 진입 데이터가 누락되었다면 보정
+        if (!acc.start_market_type) acc.start_market_type = marketInfo ? marketInfo.marketType : "지정 안 됨";
+        if (!acc.start_date) acc.start_date = tradeDate;
+
+        executeClearance(tradeDate, actualClose);
+
+        try {
+            await saveToGist(gistId, token, appData);
+            updateAccountUI();
+            updateReportUI();
+            if(marketInfo) calculateGuide();
+            document.getElementById('actualClose').value = "";
+            document.getElementById('actualQty').value = "";
+        } catch(e) {
+            alert("Gist 강제 종료 기록 업로드 실패: " + e.message);
+        }
+    }
+
+    // 내부 공통 정산 프로세스
+    function executeClearance(clearDate, sellPrice) {
+        let acc = appData.account;
+        let sellRevenue = acc.total_shares * sellPrice;
+        acc.current_cash += sellRevenue;
+        let finalAsset = acc.current_cash;
+        let totalReturn = ((finalAsset - acc.initial_asset) / acc.initial_asset) * 100;
+
+        const newReport = {
+            cycle: acc.current_cycle,
+            market_case: acc.start_market_type,
+            start_date: acc.start_date,
+            clear_date: clearDate,
+            settlement_phase: acc.current_phase,
+            buy_amount: acc.total_buy_amount,
+            sell_amount: sellRevenue,
+            sell_price: sellPrice,
+            accumulated_asset: finalAsset,
+            accumulated_return: totalReturn
+        };
+
+        appData.reports.unshift(newReport); 
+
+        alert(`🏁 ${acc.current_cycle}주기 정산 종료 완료!\n최종 누적자산: $${Math.round(finalAsset).toLocaleString()}\n수익률: ${totalReturn.toFixed(2)}%`);
+
+        acc.initial_asset = finalAsset;
+        acc.current_cash = finalAsset;
+        acc.current_phase = 1;
+        acc.total_shares = 0;
+        acc.average_price = 0;
+        acc.start_market_type = "";
+        acc.start_date = "";
+        acc.total_buy_amount = 0;
+        acc.current_cycle += 1;
     }
 
     async function saveToGist(gistId, token, data) {
