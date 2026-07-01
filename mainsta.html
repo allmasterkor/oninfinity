@@ -228,61 +228,64 @@
         }
     }
 
-    // 중간 우회 프록시를 완전히 배제한 야후 파이낸스 직접 호출 엔진
-    async function fetchMarketData() {
-        const ticker = document.getElementById('ticker').value;
-        const display = document.getElementById('marketDataDisplay');
-        display.innerHTML = "<p>야후 파이낸스 원격 서버에서 주가 직접 조회 중...</p>";
+   async function fetchMarketData() {
+    const ticker = document.getElementById('ticker').value || 'TQQQ';
+    const display = document.getElementById('marketDataDisplay');
+    display.innerHTML = "<p>주가 데이터 조회 중 (CORS 우회 적용)...</p>";
 
+    try {
+        // 야후 파이낸스 오리지널 URL
         const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
-
-        try {
-            const response = await fetch(targetUrl);
-            if (!response.ok) throw new Error("야후 파이낸스 서버 응답 거부");
-            
-            const json = await response.json();
-            
-            if (!json.chart || !json.chart.result) throw new Error("올바르지 않은 티커이거나 데이터를 찾을 수 없습니다.");
-
-            const result = json.chart.result[0];
-            const quotes = result.indicators.quote[0];
-            const closes = quotes.close.filter(c => c !== null); 
-
-            if (closes.length < 21) throw new Error("이평선 연산 데이터 부족");
-
-            // 최신 정산 마감일(6월 30일 종가 기준) 처리 적용
-            const prevClose = closes[closes.length - 1];
-            
-            const sub5 = closes.slice(closes.length - 5, closes.length);
-            const prev5SMA = sub5.reduce((a, b) => a + b, 0) / 5;
-            
-            const sub20 = closes.slice(closes.length - 20, closes.length);
-            const prev20SMA = sub20.reduce((a, b) => a + b, 0) / 20;
-
-            setMarketData(prevClose, prev5SMA, prev20SMA);
-
-        } catch (e) {
-            display.innerHTML = `
-                <p style="color:var(--danger); font-weight:bold;">⚠️ 자동 조회 실패 (${e.message})</p>
-                <div class="manual-box">
-                    <p style="margin-top:0; font-weight:bold;">💡 전일 주가 수동 입력</p>
-                    <div class="form-group">
-                        <label>전일 종가 ($)</label>
-                        <input type="number" step="0.01" id="mPrevClose" placeholder="예: 54.20">
-                    </div>
-                    <div class="form-group">
-                        <label>전일 5일 이동평균선 ($)</label>
-                        <input type="number" step="0.01" id="mPrev5" placeholder="예: 53.80">
-                    </div>
-                    <div class="form-group">
-                        <label>전일 20일 이동평균선 ($)</label>
-                        <input type="number" step="0.01" id="mPrev20" placeholder="예: 55.10">
-                    </div>
-                    <button onclick="submitManualMarketData()" style="background:#495057;">⚙️ 수동 입력 데이터 반영</button>
-                </div>
-            `;
+        
+        // corsproxy.io 서비스를 이용하여 CORS 제한 우회 호출
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+        
+        if (!response.ok) throw new Error("네트워크 응답에 실패했습니다. (프록시 서버 오류 가능성)");
+        
+        const json = await response.json();
+        
+        if (!json.chart || !json.chart.result) {
+            throw new Error("올바르지 않은 티커이거나 데이터를 찾을 수 없습니다.");
         }
+        
+        const result = json.chart.result[0];
+        const quotes = result.indicators.quote[0];
+        const closes = quotes.close.filter(c => c !== null); 
+
+        if (closes.length < 21) throw new Error("이동평균선을 계산하기 위한 데이터(21일분)가 부족합니다.");
+
+        // 전일 데이터 (배열 끝에서 2번째)
+        const prevClose = closes[closes.length - 1];
+        const sub5 = closes.slice(closes.length - 5, closes.length);
+        const prev5SMA = sub5.reduce((a, b) => a + b, 0) / 5;
+
+        // 최신 마감 데이터 포함 직전 20일 데이터 추출
+        const sub20 = closes.slice(closes.length - 20, closes.length);
+        const prev20SMA = sub20.reduce((a, b) => a + b, 0) / 20;
+
+        const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
+        const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
+
+        marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
+
+        display.innerHTML = `
+            <p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
+            <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
+            <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
+            <p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
+        `;
+
+        calculateGuide();
+    } catch (e) {
+        display.innerHTML = `
+            <p style="color:var(--danger)"><b>데이터 조회 실패:</b> ${e.message}</p>
+            <p style="font-size:0.8rem; color:#6c757d;">
+                팁: 미국 시장 정규장 마감 직후 또는 야후 API 일시적 지연일 수 있습니다. <br>
+                지속적으로 실패할 경우 공공 프록시 서버의 트래픽 초과 상태이므로 잠시 후 재시도하십시오.
+            </p>
+        `;
     }
+}
 
     function submitManualMarketData() {
         const prevClose = parseFloat(document.getElementById('mPrevClose').value);
