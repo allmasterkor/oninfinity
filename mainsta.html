@@ -230,7 +230,7 @@
 
     // 중간 우회 프록시를 완전히 배제한 야후 파이낸스 직접 호출 엔진
     async function fetchMarketData() {
-        const ticker = document.getElementById('ticker').value || 'TQQQ';
+        const ticker = document.getElementById('ticker').value;
         const display = document.getElementById('marketDataDisplay');
         display.innerHTML = "<p>야후 파이낸스 원격 서버에서 주가 직접 조회 중...</p>";
 
