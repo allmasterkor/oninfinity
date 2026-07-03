@@ -194,6 +194,7 @@
 
 <script>
     
+   // 전역 변수 및 파일명 최상단 배치
     const fileName = "oninfinity_data.json";
     let allData = {};
     let appData = {
@@ -201,11 +202,11 @@
         phases: [],
         reports: []
     };
-
     let marketInfo = null;
 
+    // 페이지 로드 시 실행 순서 정렬
     document.addEventListener("DOMContentLoaded", async function() {
-
+        // 1. LocalStorage 데이터 복원
         if(localStorage.getItem('gist_token')) document.getElementById('githubToken').value = localStorage.getItem('gist_token');
         if(localStorage.getItem('gist_id')) document.getElementById('gistId').value = localStorage.getItem('gist_id');
         if(localStorage.getItem('gist_account')) document.getElementById('accountSelector').value = localStorage.getItem('gist_account');
@@ -214,13 +215,16 @@
         if(localStorage.getItem('gist_max_phase')) document.getElementById('maxPhaseInput').value = localStorage.getItem('gist_max_phase');
         document.getElementById('tradeDate').value = new Date().toISOString().substring(0, 10);
 
-        // [추가] 토큰과 Gist ID가 존재하면 새로고침 시 자동으로 데이터를 불러옵니다.
+        // 2. Gist 자동 동기화 시도 (Silent 모드)
         const token = document.getElementById('githubToken').value;
         const gistId = document.getElementById('gistId').value;
         if (token && gistId) {
             await testAndLoadGist(true);
+        } else {
+            // 연동 데이터가 없을 때 기본 화면 표시
+            switchAccountOrTicker();
         }
-    };
+    });
 
     function switchAccountOrTicker() {
         const accKey = document.getElementById('accountSelector').value;
@@ -240,9 +244,7 @@
         appData = allData[accKey][tickerKey];
         if(!appData.account.max_phase) appData.account.max_phase = parseInt(document.getElementById('maxPhaseInput').value) || 101;
         
-        document.getElementById('initialAssetInput').value = appData.account.initial_asset;
-        document.getElementById('maxPhaseInput').value = appData.account.max_phase;
-        
+        // UI 갱신 유도
         updateAccountUI();
         updatePhaseUI();
         updateReportUI();
