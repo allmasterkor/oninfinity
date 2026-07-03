@@ -301,6 +301,7 @@
 
         if(!token || !gistId) {
             if(!isSilent) alert("설정 값을 모두 입력해주세요.");
+            switchAccountOrTicker(); // 데이터가 없더라도 UI 기본값 출력
             return;
         }
 
@@ -311,6 +312,7 @@
         localStorage.setItem('gist_initial_asset', initialAsset);
         localStorage.setItem('gist_max_phase', maxPhase);
 
+        // 비동기 fetch 에러가 발생해도 스크립트가 죽지 않도록 내부 try-catch 철저히 분리
         try {
             const response = await fetch(`https://api.github.com/gists/${gistId}`, {
                 headers: { 'Authorization': `token ${token}` }
@@ -329,15 +331,20 @@
                     allData = parsed;
                 }
 
+                // Gist 데이터를 파싱한 직후 즉시 UI에 반영 (확장 프로그램 간섭 차단)
                 switchAccountOrTicker();
-                // [수정] 자동 로드가 아닐 때만 알림창을 띄웁니다.
+                
                 if (!isSilent) {
                     alert("Gist 데이터 전체 동기화 완료!");
                 }
             } else {
+                switchAccountOrTicker();
                 if(!isSilent) alert("Gist에 지정된 파일명이 없습니다. 초기화 생성을 먼저 진행해주세요.");
             }
         } catch(e) {
+            // 에러가 나더라도 메모리 상의 기본 UI는 그리도록 유도
+            switchAccountOrTicker();
+            console.error("Gist 로드 중 확장 프로그램/네트워크 간섭 발생:", e);
             if(!isSilent) alert("에러 발생: " + e.message);
         }
     }
