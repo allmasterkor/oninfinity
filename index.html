@@ -217,7 +217,7 @@
         const token = document.getElementById('githubToken').value;
         const gistId = document.getElementById('gistId').value;
         if (token && gistId) {
-            await testAndLoadGist();
+            await testAndLoadGist(true);
         }
     };
 
@@ -288,7 +288,7 @@
         }
     }
 
-    async function testAndLoadGist() {
+    async function testAndLoadGist(isSilent = false) {
         const token = document.getElementById('githubToken').value;
         const gistId = document.getElementById('gistId').value;
         const account = document.getElementById('accountSelector').value;
@@ -296,7 +296,10 @@
         const initialAsset = document.getElementById('initialAssetInput').value;
         const maxPhase = document.getElementById('maxPhaseInput').value;
 
-        if(!token || !gistId) return alert("설정 값을 모두 입력해주세요.");
+        if(!token || !gistId) {
+            if(!isSilent) alert("설정 값을 모두 입력해주세요.");
+            return;
+        }
 
         localStorage.setItem('gist_token', token);
         localStorage.setItem('gist_id', gistId);
@@ -324,12 +327,15 @@
                 }
 
                 switchAccountOrTicker();
-                alert("Gist 데이터 전체 동기화 완료!");
+                // [수정] 자동 로드가 아닐 때만 알림창을 띄웁니다.
+                if (!isSilent) {
+                    alert("Gist 데이터 전체 동기화 완료!");
+                }
             } else {
-                alert("Gist에 지정된 파일명이 없습니다. 초기화 생성을 먼저 진행해주세요.");
+                if(!isSilent) alert("Gist에 지정된 파일명이 없습니다. 초기화 생성을 먼저 진행해주세요.");
             }
         } catch(e) {
-            alert("에러 발생: " + e.message);
+            if(!isSilent) alert("에러 발생: " + e.message);
         }
     }
 
