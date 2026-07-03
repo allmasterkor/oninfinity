@@ -193,6 +193,8 @@
 </div>
 
 <script>
+    
+    const fileName = "oninfinity_data.json";
     let allData = {};
     let appData = {
         account: { current_cycle: 1, current_phase: 1, initial_asset: 10000.00, current_cash: 10000.00, total_shares: 0, average_price: 0, start_market_type: "", start_date: "", total_buy_amount: 0, max_phase: 101 },
@@ -201,9 +203,8 @@
     };
 
     let marketInfo = null;
-    const fileName = "oninfinity_data.json";
 
-    window.onload = function() {
+    document.addEventListener("DOMContentLoaded", async function() {
 
         if(localStorage.getItem('gist_token')) document.getElementById('githubToken').value = localStorage.getItem('gist_token');
         if(localStorage.getItem('gist_id')) document.getElementById('gistId').value = localStorage.getItem('gist_id');
