@@ -425,7 +425,7 @@
         const maxPhase = appData.account.max_phase || 101;
         
         // 현재 적용할 익절률 판단
-        const isBullMode = startMarketType.includes("상승장");
+        const isBullMode = marketInfo.marketType.includes("상승장");
         const currentProfitRate = isBullMode ? appData.account.target_profit_rate_bull : appData.account.target_profit_rate_bear;
 
         let dailyBudget = startMarketType === "Case A (상승장)" ? (initialAsset / 25.0) : (initialAsset / 30.0);
