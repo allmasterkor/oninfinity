@@ -374,45 +374,68 @@
     }
 
     async function fetchMarketData() {
-        const ticker = document.getElementById('ticker').value || 'TQQQ';
-        const display = document.getElementById('marketDataDisplay');
-        display.innerHTML = "<p>주가 데이터 조회 중...</p>";
+		const ticker = document.getElementById('ticker').value || 'TQQQ';
+		const display = document.getElementById('marketDataDisplay');
+		display.innerHTML = "<p>주가 데이터 조회 중...</p>";
 
-        try {
-            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
-            const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
-            if (!response.ok) throw new Error("네트워크 응답 실패");
-            
-            const json = await response.json();
-            const result = json.chart.result[0];
-            const quotes = result.indicators.quote[0];
-            const closes = quotes.close.filter(c => c !== null); 
+		try {
+			const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
+			const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+			if (!response.ok) throw new Error("네트워크 응답 실패");
+			
+			const json = await response.json();
+			
+			// 데이터 존재 여부 검증
+			if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
+				throw new Error("올바르지 않은 티커이거나 데이터가 없습니다.");
+			}
 
-            console.log('closes 차트 전체:', closes);
+			const result = json.chart.result[0];
+			const quotes = result.indicators.quote[0];
+			
+			// null 값 필터링한 종가 배열
+			const closes = quotes.close.filter(c => c !== null); 
 
-            if (closes.length < 21) throw new Error("이동평균선 계산 데이터 부족");
+			// 최소 21개 이상의 데이터가 확보되었는지 검증 (전일 기준 20일선 확보용)
+			if (closes.length < 21) throw new Error("이동평균선 계산 데이터 부족");
 
-            const prevClose = closes[closes.length - 1];
-            const prev5SMA = closes.slice(closes.length - 5).reduce((a, b) => a + b, 0) / 5;
-            const prev20SMA = closes.slice(closes.length - 20).reduce((a, b) => a + b, 0) / 20;
+			// [핵심 교정] 야후 API가 제공하는 공식 전일 종가 메타데이터 확보
+			const officialPrevClose = result.meta.previousClose;
 
-            const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
-            const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
+			// 배열의 마지막 값이 오늘 데이터인지, 아니면 갱신 전의 전일 데이터인지 판별
+			let yesterdayIdx = closes.length - 1;
+			
+			// 만약 배열의 마지막 값이 공식 전일 종가와 다르다면, 그것은 '당일(장중) 데이터'이므로 전일 인덱스는 하나 앞(-2)이어야 함
+			if (officialPrevClose && Math.abs(closes[closes.length - 1] - officialPrevClose) > 0.001) {
+				// 마지막 값이 오늘 데이터이므로, 전일 인덱스를 하나 낮춤
+				yesterdayIdx = closes.length - 2;
+			}
 
-            marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
+			// 전일 기준의 데이터 재정의
+			const prevClose = closes[yesterdayIdx];
+			
+			// 전일 기준 5일선 및 20일선 계산 (슬라이스 범위 명확화)
+			const prev5SMA = closes.slice(yesterdayIdx - 4, yesterdayIdx + 1).reduce((a, b) => a + b, 0) / 5;
+			const prev20SMA = closes.slice(yesterdayIdx - 19, yesterdayIdx + 1).reduce((a, b) => a + b, 0) / 20;
 
-            display.innerHTML = `
-                <p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
-                <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
-                <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
-                <p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
-            `;
+			const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
+			const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
 
-            calculateGuide();
-        } catch (e) {
-            display.innerHTML = `<p style="color:var(--danger)"><b>데이터 조회 실패:</b> ${e.message}</p>`;
-        }
-    }
+			// 전역 변수 또는 상위 스코프 변수 안전하게 할당 (marketInfo가 선언되어 있다고 가정)
+			marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
+
+			display.innerHTML = `
+				<p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
+				<p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
+				<p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
+				<p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
+			`;
+
+			calculateGuide();
+		} catch (e) {
+			display.innerHTML = `<p style="color:var(--danger)"><b>데이터 조회 실패:</b> ${e.message}</p>`;
+		}
+	}
 
     function calculateGuide() {
         const guideDiv = document.getElementById('guideDisplay');
