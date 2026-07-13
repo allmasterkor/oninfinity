@@ -428,9 +428,9 @@
         const isBullMode = startMarketType.includes("상승장");
         const currentProfitRate = isBullMode ? appData.account.target_profit_rate_bull : appData.account.target_profit_rate_bear;
 
-        let dailyBudget = marketInfo.marketType === "Case A (상승장)" ? (initialAsset / 25.0) : (initialAsset / 30.0);
+        let dailyBudget = startMarketType === "Case A (상승장)" ? (initialAsset / 25.0) : (initialAsset / 30.0);
         let multiplier = 1.0;
-        if (marketInfo.marketType === "Case B (하락장)") {
+        if (startMarketType === "Case B (하락장)") {
             if (phase >= 1 && phase <= 10) multiplier = 0.5;
             else if (phase >= 11 && phase <= 20) multiplier = 0.8;
             else if (phase >= 21 && phase <= 30) multiplier = 1.7;
