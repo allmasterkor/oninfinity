@@ -374,69 +374,59 @@
     }
 
     async function fetchMarketData() {
-		const ticker = document.getElementById('ticker').value || 'TQQQ';
-		const display = document.getElementById('marketDataDisplay');
-		display.innerHTML = "<p>주가 데이터 조회 중...</p>";
+    const ticker = document.getElementById('ticker').value || 'TQQQ';
+    const display = document.getElementById('marketDataDisplay');
+    display.innerHTML = "<p>주가 데이터 조회 중...</p>";
 
-		try {
-			const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
-			const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
-			if (!response.ok) throw new Error("네트워크 응답 실패");
-			
-			const json = await response.json();
-			
-			// 데이터 존재 여부 검증
-			if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
-				throw new Error("올바르지 않은 티커이거나 데이터가 없습니다.");
-			}
+    try {
+        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+        if (!response.ok) throw new Error("네트워크 응답 실패");
+        
+        const json = await response.json();
+        
+        if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
+            throw new Error("올바르지 않은 티커이거나 데이터가 없습니다.");
+        }
 
-			const result = json.chart.result[0];
-			const quotes = result.indicators.quote[0];
-			
-			// null 값 필터링한 종가 배열
-			const closes = quotes.close.filter(c => c !== null); 
+        const result = json.chart.result[0];
+        const quotes = result.indicators.quote[0];
+        const closes = quotes.close.filter(c => c !== null); 
 
-			// 최소 21개 이상의 데이터가 확보되었는지 검증 (전일 기준 20일선 확보용)
-			if (closes.length < 21) throw new Error("이동평균선 계산 데이터 부족");
+        // 전일 기준 20일선을 구해야 하므로 당일 데이터 포함 총 21개 이상 필요
+        if (closes.length < 21) throw new Error("이동평균선 계산 데이터 부족");
 
-			// [핵심 교정] 야후 API가 제공하는 공식 전일 종가 메타데이터 확보
-			const officialPrevClose = result.meta.previousClose;
+        // [교정 핵심] 
+        // closes[closes.length - 1]은 당일(오늘) 주가입니다.
+        // 주공께서 원하시는 '전일 종가'는 반드시 뒤에서 두 번째 값이어야 합니다.
+        const yesterdayIdx = closes.length - 2; 
 
-			// 배열의 마지막 값이 오늘 데이터인지, 아니면 갱신 전의 전일 데이터인지 판별
-			let yesterdayIdx = closes.length - 1;
-			
-			// 만약 배열의 마지막 값이 공식 전일 종가와 다르다면, 그것은 '당일(장중) 데이터'이므로 전일 인덱스는 하나 앞(-2)이어야 함
-			if (officialPrevClose && Math.abs(closes[closes.length - 1] - officialPrevClose) > 0.001) {
-				// 마지막 값이 오늘 데이터이므로, 전일 인덱스를 하나 낮춤
-				yesterdayIdx = closes.length - 2;
-			}
+        const prevClose = closes[yesterdayIdx]; // 순수한 전일 종가
+        const todayPrice = closes[closes.length - 1]; // 당일 종가 (또는 현재가)
 
-			console.log('closes 전체 차트값:', closes, officialPrevClose);
-			// 전일 기준의 데이터 재정의
-			const prevClose = closes[yesterdayIdx];
-			
-			// 전일 기준 5일선 및 20일선 계산 (슬라이스 범위 명확화)
-			const prev5SMA = closes.slice(yesterdayIdx - 4, yesterdayIdx + 1).reduce((a, b) => a + b, 0) / 5;
-			const prev20SMA = closes.slice(yesterdayIdx - 19, yesterdayIdx + 1).reduce((a, b) => a + b, 0) / 20;
+        // 전일 기준(yesterdayIdx)으로 5일선과 20일선 슬라이스 범위를 엄격히 제한
+        const prev5SMA = closes.slice(yesterdayIdx - 4, yesterdayIdx + 1).reduce((a, b) => a + b, 0) / 5;
+        const prev20SMA = closes.slice(yesterdayIdx - 19, yesterdayIdx + 1).reduce((a, b) => a + b, 0) / 20;
 
-			const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
-			const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
+        // 장세 판단 (전일 종가 기준)
+        const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
+        const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
 
-			// 전역 변수 또는 상위 스코프 변수 안전하게 할당 (marketInfo가 선언되어 있다고 가정)
-			marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
+        // 데이터 저장
+        marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
 
-			display.innerHTML = `
-				<p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
-				<p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
-				<p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
-				<p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
-			`;
+        display.innerHTML = `
+            <p><b>전일 종가:</b> $${prevClose.toFixed(2)} <span style="color:gray">(당일 현재가: $${todayPrice.toFixed(2)})</span></p>
+            <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
+            <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
+            <p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
+        `;
 
-			calculateGuide();
-		} catch (e) {
-			display.innerHTML = `<p style="color:var(--danger)"><b>데이터 조회 실패:</b> ${e.message}</p>`;
-		}
-	}
+        calculateGuide();
+    } catch (e) {
+        display.innerHTML = `<p style="color:var(--danger)"><b>데이터 조회 실패:</b> ${e.message}</p>`;
+    }
+}
 
     function calculateGuide() {
         const guideDiv = document.getElementById('guideDisplay');
