@@ -378,27 +378,34 @@
     const display = document.getElementById('marketDataDisplay');
     display.innerHTML = "<p>주가 데이터 조회 중...</p>";
 
-    try {
-        // 1. 야후 공식 웹페이지와 동기화되는 정식 시세 API 호출 (종가 $75.02 정밀 확보용)
-        const quoteUrl = `https://query1.finance.yahoo.com/v6/finance/quote?symbols=${ticker}`;
-        const quoteResponse = await fetch(`https://corsproxy.io/?${encodeURIComponent(quoteUrl)}`);
-        if (!quoteResponse.ok) throw new Error("시세 데이터 네트워크 응답 실패");
-        
-        const quoteJson = await quoteResponse.json();
-        if (!quoteJson.quoteResponse || !quoteJson.quoteResponse.result || quoteJson.quoteResponse.result.length === 0) {
-            throw new Error("올바르지 않은 티커이거나 시세 정보가 없습니다.");
-        }
-        
-        const tickerQuote = quoteJson.quoteResponse.result[0];
-        
-        // 야후 웹페이지의 "Previous Close" 필드와 정확히 일치하는 공인 전일 종가 데이터 수혈
-        const realPrevClose = tickerQuote.regularMarketPreviousClose; // 화요일 종가 $75.02 확보
-        const livePrice = tickerQuote.regularMarketPrice; // 현재 실시간 주가
+    // 더 안정적인 CORS 프록시 서버(allorigins) 사용
+    const proxyUrl = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
-        // 2. 이평선 산출을 위한 역사적 차트 데이터 API 호출
+    try {
+        let realPrevClose = null;
+        let livePrice = null;
+
+        // 1단계: 정식 시세 API 호출 시도 (이중화 처리)
+        try {
+            const quoteUrl = `https://query1.finance.yahoo.com/v6/finance/quote?symbols=${ticker}`;
+            const quoteResponse = await fetch(proxyUrl(quoteUrl));
+            
+            if (quoteResponse.ok) {
+                const quoteJson = await quoteResponse.json();
+                if (quoteJson.quoteResponse && quoteJson.quoteResponse.result && quoteJson.quoteResponse.result.length > 0) {
+                    const tickerQuote = quoteJson.quoteResponse.result[0];
+                    realPrevClose = tickerQuote.regularMarketPreviousClose; // 화요일 종가 $75.02 확보
+                    livePrice = tickerQuote.regularMarketPrice;
+                }
+            }
+        } catch (e) {
+            console.warn("시세 API 조회 실패, 차트 API 내부 보정 로직으로 대체합니다.", e);
+        }
+
+        // 2단계: 역사적 차트 데이터 API 호출
         const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
-        const chartResponse = await fetch(`https://corsproxy.io/?${encodeURIComponent(chartUrl)}`);
-        if (!chartResponse.ok) throw new Error("차트 데이터 네트워크 응답 실패");
+        const chartResponse = await fetch(proxyUrl(chartUrl));
+        if (!chartResponse.ok) throw new Error("차트 데이터 조회에 완전히 실패했습니다.");
         
         const chartJson = await chartResponse.json();
         const result = chartJson.chart.result[0];
@@ -414,10 +421,10 @@
             day: "2-digit"
         });
 
-        // 3. 차트 데이터 가공 (null 값 배제 및 순수 과거 종가 정제)
+        // 3단계: 차트 데이터 가공
         const validData = [];
         for (let i = 0; i < rawCloses.length; i++) {
-            if (timestamps[i] === undefined || rawCloses[i] === null || rawCloses[i] === undefined) continue;
+            if (timestamps[i] === undefined) continue;
 
             const dateObj = new Date(timestamps[i] * 1000);
             const parts = estFormatter.formatToParts(dateObj);
@@ -426,14 +433,23 @@
             const day = parts.find(p => p.type === 'day').value;
             const formattedDate = `${year}-${month}-${day}`;
 
+            // 일단 데이터가 있으면 대입, 없으면 직전가 유지
+            let finalPrice = rawCloses[i];
+            if (finalPrice === null || finalPrice === undefined) {
+                if (validData.length > 0) {
+                    finalPrice = validData[validData.length - 1].close;
+                } else {
+                    finalPrice = result.meta.regularMarketPrice || 0;
+                }
+            }
+
             validData.push({
                 date: formattedDate,
-                close: rawCloses[i]
+                close: finalPrice
             });
         }
 
-        // 4. 전일 공인 종가($75.02)를 데이터 배열의 기준점으로 강제 병합하여 연속성 확보
-        // 오늘 날짜 구하기
+        // 오늘 날짜 및 장중 판별
         const todayObj = new Date();
         const estParts = estFormatter.formatToParts(todayObj);
         const estYear = estParts.find(p => p.type === 'year').value;
@@ -441,34 +457,42 @@
         const estDay = estParts.find(p => p.type === 'day').value;
         const estToday = `${estYear}-${estMonth}-${estDay}`;
 
-        // 오늘 장중 실시간 데이터 세션 정의 (정규장 시간 내)
         const regTime = result.meta.regularMarketTime;
         const tradingPeriod = result.meta.currentTradingPeriod.regular;
         const isMarketOpen = (regTime >= tradingPeriod.start && regTime <= tradingPeriod.end);
 
-        // 차트 데이터의 가장 마지막이 오늘 날짜나 전일 날짜와 겹치면 중복 방지를 위해 제거
+        // 중복 방지를 위한 끝부분 정돈
         if (validData.length > 0 && (validData[validData.length - 1].date === estToday)) {
             validData.pop(); 
         }
 
-        // 야후 시세 API의 정확한 전일 종가 정보와 날짜 정보 결합
-        const yesterdayDateObj = new Date(tradingPeriod.start * 1000 - 86400000); // 안전하게 전일 타임스탬프 역산
+        // 4단계: 전일 실제 종가 복원 및 동기화 (시세 API 실패 시 차트 메타값으로 자동 복구)
+        if (realPrevClose === null || realPrevClose === undefined) {
+            // 시세 API가 차단당했다면 차트 메타의 전일 종가 데이터 활용
+            realPrevClose = result.meta.chartPreviousClose || result.meta.regularMarketPrice || 0;
+        }
+        if (livePrice === null || livePrice === undefined) {
+            livePrice = result.meta.regularMarketPrice || realPrevClose;
+        }
+
+        // 안전하게 전일 날짜 생성
+        const yesterdayDateObj = new Date(tradingPeriod.start * 1000 - 86400000);
         const yestParts = estFormatter.formatToParts(yesterdayDateObj);
         const yestYear = yestParts.find(p => p.type === 'year').value;
         const yestMonth = yestParts.find(p => p.type === 'month').value;
         const yestDay = yestParts.find(p => p.type === 'day').value;
         const prevCloseDate = `${yestYear}-${yestMonth}-${yestDay}`;
 
-        // 전일 가격 세션 강제 주입
+        // 가공 배열의 끝에 확실히 복원된 전일 가격 주입
         validData.push({
             date: prevCloseDate,
             close: realPrevClose
         });
 
         const yesterdayIdx = validData.length - 1;
-        if (yesterdayIdx < 19) throw new Error("이동평균선 산출을 위한 과거 데이터가 부족합니다.");
+        if (yesterdayIdx < 19) throw new Error("이동평균선 산출을 위한 데이터가 부족합니다.");
 
-        // 5. 이평선 및 장세 산출
+        // 5단계: 이평선 및 장세 산출
         const subsetFor5 = validData.slice(yesterdayIdx - 4, yesterdayIdx + 1);
         const subsetFor20 = validData.slice(yesterdayIdx - 19, yesterdayIdx + 1);
 
