@@ -392,60 +392,12 @@
         const timestamps = result.timestamp;
         const quotes = result.indicators.quote[0];
         
-        // 야후 API의 일시적 null 값 방어를 위해 adjclose 데이터 배열 확보
         const adjCloses = result.indicators.adjclose && result.indicators.adjclose[0] 
             ? result.indicators.adjclose[0].adjclose 
             : [];
         const rawCloses = quotes.close;
 
-        // 1단계: 날짜별 데이터 정제 및 null 값 완벽 복원 (안전성 극대화)
-        const validData = [];
-        let lastValidPrice = result.meta.regularMarketPrice || 0; // 최악의 경우를 대비한 기본값 설정
-
-        for (let i = 0; i < rawCloses.length; i++) {
-            if (timestamps[i] === undefined) continue;
-
-            const dateObj = new Date(timestamps[i] * 1000);
-            const formatter = new Intl.DateTimeFormat("en-US", {
-                timeZone: "America/New_York",
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit"
-            });
-            const parts = formatter.formatToParts(dateObj);
-            const year = parts.find(p => p.type === 'year').value;
-            const month = parts.find(p => p.type === 'month').value;
-            const day = parts.find(p => p.type === 'day').value;
-            const formattedDate = `${year}-${month}-${day}`;
-
-            // 종가 검증 및 보정 로직
-            let finalPrice = rawCloses[i];
-            
-            if (finalPrice === null || finalPrice === undefined) {
-                if (adjCloses[i] !== null && adjCloses[i] !== undefined) {
-                    // close가 null이어도 adjclose가 존재하면 해당 값을 실시간 대체 (7월 14일 $75.02 추적 핵심)
-                    finalPrice = adjCloses[i];
-                } else if (i === rawCloses.length - 1 && result.meta.regularMarketPrice) {
-                    // 당일 실시간 캔들인 경우 meta 데이터의 실시간 가격 반영
-                    finalPrice = result.meta.regularMarketPrice;
-                } else {
-                    // 이전까지 가공되어 검증 완료된 직전 영업일의 가격을 가져옴 (안전망)
-                    finalPrice = lastValidPrice;
-                }
-            }
-
-            // 다음 루프에서 사용할 직전 유효 가격 갱신
-            lastValidPrice = finalPrice;
-
-            validData.push({
-                date: formattedDate,
-                close: finalPrice
-            });
-        }
-
-        if (validData.length < 21) throw new Error("이동평균선 계산을 위한 데이터가 부족합니다.");
-
-        // 2단계: 미 동부 기준 오늘 날짜 획득
+        // 미 동부 기준 오늘 날짜 구하기
         const todayObj = new Date();
         const estFormatter = new Intl.DateTimeFormat("en-US", {
             timeZone: "America/New_York",
@@ -459,36 +411,79 @@
         const estDay = estParts.find(p => p.type === 'day').value;
         const estToday = `${estYear}-${estMonth}-${estDay}`;
 
-        let yesterdayIdx = -1;
-        const lastData = validData[validData.length - 1];
+        // 임시 날짜 맵 생성 (중복 제거 및 매핑 편의성 제공)
+        const rawDataList = [];
+        for (let i = 0; i < rawCloses.length; i++) {
+            if (timestamps[i] === undefined) continue;
 
-        // 3단계: 당일 데이터 존재 여부에 따른 전일 인덱스 확정
-        if (lastData.date === estToday) {
-            yesterdayIdx = validData.length - 2; // 오늘 데이터가 들어왔으므로 전일은 그 바로 앞 인덱스
-        } else {
-            yesterdayIdx = validData.length - 1; // 오늘 데이터가 아직 없으므로 마지막 데이터가 전일
+            const dateObj = new Date(timestamps[i] * 1000);
+            const parts = estFormatter.formatToParts(dateObj);
+            const year = parts.find(p => p.type === 'year').value;
+            const month = parts.find(p => p.type === 'month').value;
+            const day = parts.find(p => p.type === 'day').value;
+            const formattedDate = `${year}-${month}-${day}`;
+
+            rawDataList.push({
+                date: formattedDate,
+                close: rawCloses[i],
+                adjClose: adjCloses[i] || null
+            });
         }
 
-        if (yesterdayIdx < 19) throw new Error("기준일 이전의 20일 이동평균선 산출 불가");
+        // 오늘 데이터가 포함되어 있는지 판단
+        const lastData = rawDataList[rawDataList.length - 1];
+        const hasTodayData = (lastData.date === estToday);
+        const yesterdayIdx = hasTodayData ? rawDataList.length - 2 : rawDataList.length - 1;
 
-        const yesterdayData = validData[yesterdayIdx];
-        const prevClose = yesterdayData.close;
-        const prevCloseDate = yesterdayData.date; // "2026-07-14"가 정확히 출력됩니다.
+        // 1단계: 날짜별 데이터 복원 정제
+        const validData = [];
+        let lastValidPrice = result.meta.regularMarketPrice || 0;
 
-        // 4단계: 전일 기준의 5일선, 20일선 산출
+        for (let i = 0; i < rawDataList.length; i++) {
+            let finalPrice = rawDataList[i].close;
+
+            // 값 유실 시 보정 로직 작동
+            if (finalPrice === null || finalPrice === undefined) {
+                if (rawDataList[i].adjClose !== null) {
+                    finalPrice = rawDataList[i].adjClose;
+                } else if (i === yesterdayIdx && result.meta.chartPreviousClose) {
+                    // 전일 데이터가 완벽히 null인 경우, meta가 보증하는 직전 영업일 종가 적용 (핵심)
+                    finalPrice = result.meta.chartPreviousClose;
+                } else if (i === rawDataList.length - 1 && result.meta.regularMarketPrice) {
+                    finalPrice = result.meta.regularMarketPrice;
+                } else {
+                    finalPrice = lastValidPrice;
+                }
+            }
+
+            lastValidPrice = finalPrice;
+
+            validData.push({
+                date: rawDataList[i].date,
+                close: finalPrice
+            });
+        }
+
+        if (validData.length < 21) throw new Error("이동평균선 계산을 위한 데이터가 부족합니다.");
+
+        // 2단계: 최종 기준 인덱스 확정
+        const finalYesterdayData = validData[yesterdayIdx];
+        const prevClose = finalYesterdayData.close;
+        const prevCloseDate = finalYesterdayData.date;
+
+        // 3단계: 이평선 및 장세 산출
         const subsetFor5 = validData.slice(yesterdayIdx - 4, yesterdayIdx + 1);
         const subsetFor20 = validData.slice(yesterdayIdx - 19, yesterdayIdx + 1);
 
         const prev5SMA = subsetFor5.reduce((sum, item) => sum + item.close, 0) / 5;
         const prev20SMA = subsetFor20.reduce((sum, item) => sum + item.close, 0) / 20;
 
-        // 5단계: 최종 장세 판정
         const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
         const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
 
         display.innerHTML = `
             <p><b>전일 판별 기준일:</b> ${prevCloseDate} (미동부시각)</p>
-            <p><b>전일 종가:</b> $${prevClose.toFixed(2)} <span style="color:gray">(조회 시점 최신가: $${lastData.close.toFixed(2)})</span></p>
+            <p><b>전일 종가:</b> $${prevClose.toFixed(2)} <span style="color:gray">(조회 시점 최신가: $${validData[validData.length - 1].close.toFixed(2)})</span></p>
             <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
             <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
             <p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
