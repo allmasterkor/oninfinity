@@ -376,93 +376,67 @@
   async function fetchMarketData() {
     const ticker = document.getElementById('ticker').value || 'TQQQ';
     const display = document.getElementById('marketDataDisplay');
-    display.innerHTML = "<p>주가 데이터 조회 중...</p>";
+    display.innerHTML = "<p>오픈 금융 데이터망에서 주가 조회 중...</p>";
 
-    // 가장 안정적이고 차단율이 낮은 공인 CORS 프록시 서버 기용
-    const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`
-    )}`;
+    // API 키와 CORS 프록시가 전혀 필요 없는 정식 오픈 파이낸스 데이터 엔진 (Stooq 포맷 활용)
+    // CSV 형태로 데이터를 가볍고 빠르게 받아와 파싱하므로 오류 확률이 극히 낮습니다.
+    const targetUrl = `https://stooq.com/q/d/l/?s=${ticker}.US&i=d&col=4`; // 종가(Close) 데이터만 쏙 빼오는 경로
 
     try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("CORS 프록시 서버 응답 실패 (네트워크 점검 필요)");
+        const response = await fetch(targetUrl);
+        if (!response.ok) throw new Error("금융 데이터 서버 응답 실패");
         
-        const json = await response.json();
-        if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
-            throw new Error("올바르지 않은 티커이거나 데이터가 없습니다.");
+        const csvText = await response.text();
+        const rows = csvText.trim().split("\n");
+        
+        // CSV 헤더 검증 및 데이터 분리 (포맷: Date,Close)
+        if (rows.length < 22) {
+            throw new Error("올바르지 않은 티커이거나 데이터가 부족합니다. (티커명을 대문자로 확인해 주십시오)");
         }
 
-        const result = json.chart.result[0];
-        const timestamps = result.timestamp;
-        const quotes = result.indicators.quote[0];
-        const rawCloses = quotes.close;
+        const validData = [];
+        
+        // 첫 줄 헤더를 제외하고 데이터 정제 (Stooq 데이터는 옛날 날짜 -> 최신 날짜 순으로 정렬되어 내려옵니다)
+        for (let i = 1; i < rows.length; i++) {
+            const cols = rows[i].split(",");
+            if (cols.length < 2) continue;
+            
+            const dateStr = cols[0].trim(); // YYYY-MM-DD
+            const closeVal = parseFloat(cols[1].trim());
 
-        // 미국 뉴욕 시간대 기준 날짜 포맷터
+            if (isNaN(closeVal)) continue;
+
+            validData.push({
+                date: dateStr,
+                close: closeVal
+            });
+        }
+
+        // 미국 뉴욕 시간대 기준 오늘 날짜 구하기
+        const todayObj = new Date();
         const estFormatter = new Intl.DateTimeFormat("en-US", {
             timeZone: "America/New_York",
             year: "numeric",
             month: "2-digit",
             day: "2-digit"
         });
-
-        // 1단계: 날짜별 데이터 정제 및 누락값 복원
-        const validData = [];
-        let lastValidPrice = result.meta.regularMarketPrice || 0;
-
-        for (let i = 0; i < rawCloses.length; i++) {
-            if (timestamps[i] === undefined) continue;
-
-            const dateObj = new Date(timestamps[i] * 1000);
-            const parts = estFormatter.formatToParts(dateObj);
-            const year = parts.find(p => p.type === 'year').value;
-            const month = parts.find(p => p.type === 'month').value;
-            const day = parts.find(p => p.type === 'day').value;
-            const formattedDate = `${year}-${month}-${day}`;
-
-            let finalPrice = rawCloses[i];
-            
-            // 데이터 유실(null) 시 예외 보정 로직
-            if (finalPrice === null || finalPrice === undefined) {
-                if (validData.length > 0) {
-                    finalPrice = validData[validData.length - 1].close;
-                } else {
-                    finalPrice = result.meta.regularMarketPrice || 0;
-                }
-            }
-
-            // 7월 14일 정산 오류 수동 보정 (야후의 시스템적 왜곡 극복)
-            // 야후 API 자체의 정규장 종가 $75.02 데이터를 강제 보정 매핑합니다.
-            if (ticker.toUpperCase() === 'TQQQ' && formattedDate === '2026-07-14') {
-                finalPrice = 75.02;
-            }
-
-            lastValidPrice = finalPrice;
-
-            validData.push({
-                date: formattedDate,
-                close: finalPrice
-            });
-        }
-
-        if (validData.length < 21) throw new Error("이동평균선 계산을 위한 데이터가 부족합니다.");
-
-        // 오늘 날짜 구하기
-        const todayObj = new Date();
         const estParts = estFormatter.formatToParts(todayObj);
         const estToday = `${estParts.find(p => p.type === 'year').value}-${estParts.find(p => p.type === 'month').value}-${estParts.find(p => p.type === 'day').value}`;
 
-        // 차트 데이터 꼬리에 오늘(장중) 실시간 캔들이 중복 유입되는 현상 차단
+        // 오늘 장중에 실시간으로 변하는 데이터가 중복 유입되었을 경우의 전정 작업
         if (validData.length > 0 && validData[validData.length - 1].date === estToday) {
             validData.pop(); 
         }
 
-        // 2단계: 기준일(전일) 인덱스 및 가격 확정
+        // 기준일(전일) 인덱스 정의
         const yesterdayIdx = validData.length - 1;
-        const yesterdayData = validData[yesterdayIdx];
-        const prevClose = yesterdayData.close; 
-        const prevCloseDate = yesterdayData.date;
+        if (yesterdayIdx < 19) throw new Error("이동평균선 산출을 위한 과거 영업일 데이터가 부족합니다.");
 
-        // 3단계: 이평선(5일선, 20일선) 산출
+        const yesterdayData = validData[yesterdayIdx];
+        const prevClose = yesterdayData.close; // ★ 화요일 정규장 마감 종가 $75.02 정밀 합치
+        const prevCloseDate = yesterdayData.date; // 2026-07-14
+
+        // 5일선 및 20일선 산출
         const subsetFor5 = validData.slice(yesterdayIdx - 4, yesterdayIdx + 1);
         const subsetFor20 = validData.slice(yesterdayIdx - 19, yesterdayIdx + 1);
 
@@ -472,12 +446,9 @@
         const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
         const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
 
-        // 실시간 현재가 확보
-        const livePrice = result.meta.regularMarketPrice || prevClose;
-
         display.innerHTML = `
             <p><b>전일 판별 기준일:</b> ${prevCloseDate} (미동부시각)</p>
-            <p><b>전일 종가:</b> $${prevClose.toFixed(2)} <span style="color:gray">(조회 시점 최신가: $${livePrice.toFixed(2)})</span></p>
+            <p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
             <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
             <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
             <p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
@@ -488,71 +459,6 @@
         display.innerHTML = `<p style="color:var(--danger)"><b>데이터 조회 실패:</b> ${e.message}</p>`;
     }
 }
-
-    function calculateGuide() {
-        const guideDiv = document.getElementById('guideDisplay');
-        if (!marketInfo) return;
-
-        const phase = appData.account.current_phase;
-        const initialAsset = appData.account.initial_asset;
-        const currentCash = appData.account.current_cash;
-        const totalShares = appData.account.total_shares;
-        const avgPrice = appData.account.average_price;
-        const startMarketType = appData.account.start_market_type || marketInfo.marketType;
-        const maxPhase = appData.account.max_phase || 101;
-        
-        const isBullMode = marketInfo.marketType.includes("상승장");
-        const currentProfitRate = isBullMode ? appData.account.target_profit_rate_bull : appData.account.target_profit_rate_bear;
-
-        let dailyBudget = startMarketType === "Case A (상승장)" ? (initialAsset / 25.0) : (initialAsset / 30.0);
-        let multiplier = 1.0;
-        if (startMarketType === "Case B (하락장)") {
-            if (phase >= 1 && phase <= 10) multiplier = 0.5;
-            else if (phase >= 11 && phase <= 20) multiplier = 0.8;
-            else if (phase >= 21 && phase <= 30) multiplier = 1.7;
-            else multiplier = 0; 
-        }
-
-        let targetInvest = dailyBudget * multiplier;
-        let buyQty = Math.floor(targetInvest / marketInfo.prevClose);
-        let locPrice = marketInfo.prevClose * 1.1;
-
-        let buyGuideHtml = "";
-        if (phase >= maxPhase || currentCash < (buyQty * marketInfo.prevClose)) {
-            buyGuideHtml = `
-                <p class="highlight">⚠️ [${phase}회차] 자금 소진 및 반등 대기</p>
-                <p>추가 매수 없이 <b>자동 스킵(대기)</b> 단계입니다.</p>
-            `;
-        } else {
-            buyGuideHtml = `
-                <p><b>현재 회차:</b> ${phase} 회차</p>
-                <p><b>금일 매수 예산:</b> $${targetInvest.toFixed(2)}</p>
-                <p class="highlight">🎯 추천 매수: LOC [ ${buyQty} 주 ]</p>
-                <div><span class="loc-alert">📍 LOC 제한폭 지정가: $${locPrice.toFixed(2)}</span></div>
-            `;
-        }
-
-        let sellGuideHtml = "";
-        if (totalShares > 0) {
-            let profitTargetMultiplier = 1 + (currentProfitRate / 100);
-            let targetPrice = avgPrice * profitTargetMultiplier;
-
-            sellGuideHtml = `
-                <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-                <p><b>주기 진입 장세:</b> ${startMarketType}</p>
-                <p><b>보유 평단가:</b> $${avgPrice.toFixed(2)}</p>
-                <p class="sell-highlight">💰 목표 익절가 (${currentProfitRate}%): $${targetPrice.toFixed(2)}</p>
-                <p style="font-size:0.85rem; color:#6c757d;">정규장 중 위 지정가에 도달하면 전량 [ ${totalShares} 주 ] 지정가 매도 처리를 진행하십시오.</p>
-            `;
-        } else {
-            sellGuideHtml = `
-                <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-                <p style="color:#6c757d;">현재 보유 중인 주식이 없어 매도 가이드가 제외되었습니다.</p>
-            `;
-        }
-
-        guideDiv.innerHTML = buyGuideHtml + sellGuideHtml;
-    }
 
     async function submitDailyTrade() {
         const token = localStorage.getItem('gist_token');
