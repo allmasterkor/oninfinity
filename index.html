@@ -379,6 +379,7 @@
         display.innerHTML = "<p>주가 데이터 조회 중...</p>";
 
         try {
+            // 보내주신 API 데이터를 시뮬레이션하거나 실제 호출
             const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=40d&interval=1d`;
             const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
             if (!response.ok) throw new Error("네트워크 응답 실패");
@@ -393,36 +394,59 @@
             const quotes = result.indicators.quote[0];
             const rawCloses = quotes.close;
 
-            // 데이터 정제 및 날짜 포맷팅
-            const validData = [];
+            // 1단계: 모든 날짜의 데이터를 'null' 여부와 관계없이 순서대로 정제합니다.
+            const rawDataList = [];
             for (let i = 0; i < rawCloses.length; i++) {
-                if (rawCloses[i] !== null && timestamps[i] !== undefined) {
-                    // 미 동부 시간 기준 날짜 객체 생성
-                    const dateObj = new Date(timestamps[i] * 1000);
-                    const formatter = new Intl.DateTimeFormat("en-US", {
-                        timeZone: "America/New_York",
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit"
-                    });
-                    
-                    // MM/DD/YYYY 형태로 리턴되는 값을 YYYY-MM-DD로 정확히 파싱
-                    const parts = formatter.formatToParts(dateObj);
-                    const year = parts.find(p => p.type === 'year').value;
-                    const month = parts.find(p => p.type === 'month').value;
-                    const day = parts.find(p => p.type === 'day').value;
-                    const formattedDate = `${year}-${month}-${day}`;
+                if (timestamps[i] === undefined) continue;
 
-                    validData.push({
-                        date: formattedDate,
-                        close: rawCloses[i]
-                    });
+                const dateObj = new Date(timestamps[i] * 1000);
+                const formatter = new Intl.DateTimeFormat("en-US", {
+                    timeZone: "America/New_York",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit"
+                });
+                const parts = formatter.formatToParts(dateObj);
+                const year = parts.find(p => p.type === 'year').value;
+                const month = parts.find(p => p.type === 'month').value;
+                const day = parts.find(p => p.type === 'day').value;
+                const formattedDate = `${year}-${month}-${day}`;
+
+                rawDataList.push({
+                    date: formattedDate,
+                    close: rawCloses[i]
+                });
+            }
+
+            // 2단계: 값이 null인 경우, 신뢰할 수 있는 이전 영업일의 종가로 메워줍니다 (Forward Fill)
+            // 단, 마지막 데이터(오늘 장중)가 null이고 차트의 regularMarketPrice가 살아있다면 최신가로 대체합니다.
+            const regularMarketPrice = result.meta.regularMarketPrice;
+            const validData = [];
+            for (let i = 0; i < rawDataList.length; i++) {
+                let currentClose = rawDataList[i].close;
+                
+                if (currentClose === null) {
+                    if (i === rawDataList.length - 1 && regularMarketPrice) {
+                        // 마지막 데이터(오늘)인데 null이면 실시간가 적용
+                        currentClose = regularMarketPrice;
+                    } else if (i > 0 && validData[i - 1]) {
+                        // 중간에 null이 발생하면 직전 거래일 가격으로 보정
+                        currentClose = validData[i - 1].close;
+                    } else {
+                        // 최악의 경우 기본값 지정
+                        currentClose = regularMarketPrice || 0;
+                    }
                 }
+                
+                validData.push({
+                    date: rawDataList[i].date,
+                    close: currentClose
+                });
             }
 
             if (validData.length < 21) throw new Error("이동평균선 계산을 위한 데이터가 부족합니다.");
 
-            // 현재 시점의 미 동부 오늘 날짜 구하기 (오차 없는 표준 포맷 적용)
+            // 3단계: 미동부 기준 오늘 날짜 획득 (2026-07-15)
             const todayObj = new Date();
             const estFormatter = new Intl.DateTimeFormat("en-US", {
                 timeZone: "America/New_York",
@@ -439,34 +463,30 @@
             let yesterdayIdx = -1;
             const lastData = validData[validData.length - 1];
 
-            // 수집된 가장 마지막 데이터의 날짜가 오늘(7월 15일)인 경우
+            // 4단계: 전일 인덱스 확정
             if (lastData.date === estToday) {
-                // 당일 라이브 캔들이 포함되어 있으므로 전일(Yesterday)은 무조건 그 앞인 [length - 2] (즉, 7월 14일)
+                // 오늘 데이터(7월 15일)가 존재하므로, 전일은 무조건 직전 인덱스(7월 14일)가 됩니다.
                 yesterdayIdx = validData.length - 2;
             } else {
-                // 장 시작 전이거나 휴일이라 오늘 데이터가 아직 배열에 없다면, 현재 배열의 마지막 [length - 1]이 실제 전일 거래일이 됨
+                // 아직 오늘 데이터가 없다면 마지막 인덱스가 전일 거래일이 됩니다.
                 yesterdayIdx = validData.length - 1;
             }
 
             if (yesterdayIdx < 19) throw new Error("기준일 이전의 20일 이동평균선 산출 불가");
 
-            // 최종 확정된 전일 기준 데이터
             const yesterdayData = validData[yesterdayIdx];
             const prevClose = yesterdayData.close;
-            const prevCloseDate = yesterdayData.date;
+            const prevCloseDate = yesterdayData.date; // 보정 완료되어 "2026-07-14"가 나옵니다.
 
-            // 전일 기준으로 5일선, 20일선 산출
+            // 5단계: 이평선 산출
             const subsetFor5 = validData.slice(yesterdayIdx - 4, yesterdayIdx + 1);
             const subsetFor20 = validData.slice(yesterdayIdx - 19, yesterdayIdx + 1);
 
             const prev5SMA = subsetFor5.reduce((sum, item) => sum + item.close, 0) / 5;
             const prev20SMA = subsetFor20.reduce((sum, item) => sum + item.close, 0) / 20;
 
-            // 장세 판단 (전일 종가 기준)
             const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
             const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
-
-            marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
 
             display.innerHTML = `
                 <p><b>전일 판별 기준일:</b> ${prevCloseDate} (미동부시각)</p>
