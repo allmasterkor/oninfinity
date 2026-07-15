@@ -469,6 +469,74 @@
     }
 }
 
+    function calculateGuide() {
+        const guideDiv = document.getElementById('guideDisplay');
+        if (!marketInfo) return;
+
+        const phase = appData.account.current_phase;
+        const initialAsset = appData.account.initial_asset;
+        const currentCash = appData.account.current_cash;
+        const totalShares = appData.account.total_shares;
+        const avgPrice = appData.account.average_price;
+        const startMarketType = appData.account.start_market_type || marketInfo.marketType;
+        const maxPhase = appData.account.max_phase || 101;
+        
+        // 현재 적용할 익절률 판단
+        const isBullMode = marketInfo.marketType.includes("상승장");
+        const currentProfitRate = isBullMode ? appData.account.target_profit_rate_bull : appData.account.target_profit_rate_bear;
+
+        let dailyBudget = startMarketType === "Case A (상승장)" ? (initialAsset / 25.0) : (initialAsset / 30.0);
+        console.log('현재 할당된 시장 유형:', startMarketType);
+        console.log('appData 전체 구조:', appData);
+        let multiplier = 1.0;
+        if (startMarketType === "Case B (하락장)") {
+            if (phase >= 1 && phase <= 10) multiplier = 0.5;
+            else if (phase >= 11 && phase <= 20) multiplier = 0.8;
+            else if (phase >= 21 && phase <= 30) multiplier = 1.7;
+            else multiplier = 0; 
+        }
+
+        let targetInvest = dailyBudget * multiplier;
+        let buyQty = Math.floor(targetInvest / marketInfo.prevClose);
+        let locPrice = marketInfo.prevClose * 1.1;
+
+        let buyGuideHtml = "";
+        if (phase >= maxPhase || currentCash < (buyQty * marketInfo.prevClose)) {
+            buyGuideHtml = `
+                <p class="highlight">⚠️ [${phase}회차] 자금 소진 및 반등 대기</p>
+                <p>추가 매수 없이 <b>자동 스킵(대기)</b> 단계입니다.</p>
+            `;
+        } else {
+            buyGuideHtml = `
+                <p><b>현재 회차:</b> ${phase} 회차</p>
+                <p><b>금일 매수 예산:</b> $${targetInvest.toFixed(2)}</p>
+                <p class="highlight">🎯 추천 매수: LOC [ ${buyQty} 주 ]</p>
+                <div><span class="loc-alert">📍 LOC 제한폭 지정가: $${locPrice.toFixed(2)}</span></div>
+            `;
+        }
+
+        let sellGuideHtml = "";
+        if (totalShares > 0) {
+            let profitTargetMultiplier = 1 + (currentProfitRate / 100);
+            let targetPrice = avgPrice * profitTargetMultiplier;
+
+            sellGuideHtml = `
+                <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+                <p><b>주기 진입 장세:</b> ${startMarketType}</p>
+                <p><b>보유 평단가:</b> $${avgPrice.toFixed(2)}</p>
+                <p class="sell-highlight">💰 목표 익절가 (${currentProfitRate}%): $${targetPrice.toFixed(2)}</p>
+                <p style="font-size:0.85rem; color:#6c757d;">정규장 중 위 지정가에 도달하면 전량 [ ${totalShares} 주 ] 지정가 매도 처리를 진행하십시오.</p>
+            `;
+        } else {
+            sellGuideHtml = `
+                <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+                <p style="color:#6c757d;">현재 보유 중인 주식이 없어 매도 가이드가 제외되었습니다.</p>
+            `;
+        }
+
+        guideDiv.innerHTML = buyGuideHtml + sellGuideHtml;
+    }
+    
     async function submitDailyTrade() {
         const token = localStorage.getItem('gist_token');
         const gistId = localStorage.getItem('gist_id');
