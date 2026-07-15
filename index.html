@@ -432,6 +432,12 @@
         const estParts = estFormatter.formatToParts(todayObj);
         const estToday = `${estParts.find(p => p.type === 'year').value}-${estParts.find(p => p.type === 'month').value}-${estParts.find(p => p.type === 'day').value}`;
 
+        // 현재 초 단위 시각 추출
+        const estHour = estParts.find(p => p.type === 'hour').value;
+        const estMin = estParts.find(p => p.type === 'minute').value;
+        const estSec = estParts.find(p => p.type === 'second').value;
+        const currentEstTime = `${estToday} ${estHour}:${estMin}:${estSec}`;
+        
         // 오늘 장중에 임시로 갱신된 행이 배열 끝에 들어와 중복을 일으킨다면 제거합니다.
         if (validData.length > 0 && validData[validData.length - 1].date === estToday) {
             validData.pop(); 
@@ -459,7 +465,7 @@
         marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
         
         display.innerHTML = `
-            <p><b>전일 판별 기준일:</b> ${prevCloseDate} (미동부시각)</p>
+            <p><b>미동부시각:</b> ${currentEstTime} </p>
             <p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
             <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
             <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
