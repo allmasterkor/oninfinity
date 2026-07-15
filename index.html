@@ -397,81 +397,69 @@
             : [];
         const rawCloses = quotes.close;
 
-        // 미 동부 기준 오늘 날짜 구하기
-        const todayObj = new Date();
-        const estFormatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: "America/New_York",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit"
-        });
-        const estParts = estFormatter.formatToParts(todayObj);
-        const estYear = estParts.find(p => p.type === 'year').value;
-        const estMonth = estParts.find(p => p.type === 'month').value;
-        const estDay = estParts.find(p => p.type === 'day').value;
-        const estToday = `${estYear}-${estMonth}-${estDay}`;
-
-        // 임시 날짜 맵 생성 (중복 제거 및 매핑 편의성 제공)
-        const rawDataList = [];
+        // 1단계: 유효 데이터 정제 (한국/미국 시차 왜곡 방지를 위해 타임스탬프 변환 시 로컬 표준 시간 준수)
+        const validData = [];
         for (let i = 0; i < rawCloses.length; i++) {
             if (timestamps[i] === undefined) continue;
 
+            // 미국 뉴욕 현지 날짜로 변환하여 기록
             const dateObj = new Date(timestamps[i] * 1000);
-            const parts = estFormatter.formatToParts(dateObj);
+            const formatter = new Intl.DateTimeFormat("en-US", {
+                timeZone: "America/New_York",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit"
+            });
+            const parts = formatter.formatToParts(dateObj);
             const year = parts.find(p => p.type === 'year').value;
             const month = parts.find(p => p.type === 'month').value;
             const day = parts.find(p => p.type === 'day').value;
             const formattedDate = `${year}-${month}-${day}`;
 
-            rawDataList.push({
-                date: formattedDate,
-                close: rawCloses[i],
-                adjClose: adjCloses[i] || null
-            });
-        }
-
-        // 오늘 데이터가 포함되어 있는지 판단
-        const lastData = rawDataList[rawDataList.length - 1];
-        const hasTodayData = (lastData.date === estToday);
-        const yesterdayIdx = hasTodayData ? rawDataList.length - 2 : rawDataList.length - 1;
-
-        // 1단계: 날짜별 데이터 복원 정제
-        const validData = [];
-        let lastValidPrice = result.meta.regularMarketPrice || 0;
-
-        for (let i = 0; i < rawDataList.length; i++) {
-            let finalPrice = rawDataList[i].close;
-
-            // 값 유실 시 보정 로직 작동
+            // close가 null이면 adjclose를 차용하고, 그것도 없으면 직전 종가 적용
+            let finalPrice = rawCloses[i];
             if (finalPrice === null || finalPrice === undefined) {
-                if (rawDataList[i].adjClose !== null) {
-                    finalPrice = rawDataList[i].adjClose;
-                } else if (i === yesterdayIdx && result.meta.chartPreviousClose) {
-                    // 전일 데이터가 완벽히 null인 경우, meta가 보증하는 직전 영업일 종가 적용 (핵심)
-                    finalPrice = result.meta.chartPreviousClose;
-                } else if (i === rawDataList.length - 1 && result.meta.regularMarketPrice) {
-                    finalPrice = result.meta.regularMarketPrice;
+                if (adjCloses[i] !== null && adjCloses[i] !== undefined) {
+                    finalPrice = adjCloses[i];
+                } else if (validData.length > 0) {
+                    finalPrice = validData[validData.length - 1].close;
                 } else {
-                    finalPrice = lastValidPrice;
+                    finalPrice = result.meta.regularMarketPrice || 0;
                 }
             }
 
-            lastValidPrice = finalPrice;
-
             validData.push({
-                date: rawDataList[i].date,
+                date: formattedDate,
                 close: finalPrice
             });
         }
 
         if (validData.length < 21) throw new Error("이동평균선 계산을 위한 데이터가 부족합니다.");
 
-        // 2단계: 최종 기준 인덱스 확정
-        const finalYesterdayData = validData[yesterdayIdx];
-        const prevClose = finalYesterdayData.close;
-        const prevCloseDate = finalYesterdayData.date;
+        // 2단계: 현재 미국 시장이 개장된 상태(장중)인지 판별
+        // regularMarketTime(실시간가 업데이트 시각)이 오늘 자정을 넘어 거래 중인지 판단
+        const regTime = result.meta.regularMarketTime;
+        const tradingPeriod = result.meta.currentTradingPeriod.regular;
+        
+        // 실시간 업데이트 시각이 정규장 시작 시간보다 크다면 현재 '장중 실시간 데이터'가 배열 마지막에 유입된 것임
+        const isMarketOpen = (regTime >= tradingPeriod.start && regTime <= tradingPeriod.end);
 
-        // 3단계: 이평선 및 장세 산출
+        let yesterdayIdx = -1;
+        if (isMarketOpen) {
+            // 현재 장중이므로, 마지막 인덱스는 당일 라이브 가격이고 진짜 전일(어제)은 그 직전 인덱스임
+            yesterdayIdx = validData.length - 2;
+        } else {
+            // 장이 열려있지 않다면(주말, 장 개시 전) 마지막 인덱스가 최종 전일 데이터임
+            yesterdayIdx = validData.length - 1;
+        }
+
+        if (yesterdayIdx < 19) throw new Error("기준일 이전의 20일 이동평균선 산출 불가");
+
+        const yesterdayData = validData[yesterdayIdx];
+        const prevClose = yesterdayData.close;
+        const prevCloseDate = yesterdayData.date;
+
+        // 3단계: 이평선 산출
         const subsetFor5 = validData.slice(yesterdayIdx - 4, yesterdayIdx + 1);
         const subsetFor20 = validData.slice(yesterdayIdx - 19, yesterdayIdx + 1);
 
