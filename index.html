@@ -455,6 +455,9 @@
         const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
         const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
 
+        // 데이터 저장
+        marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
+        
         display.innerHTML = `
             <p><b>전일 판별 기준일:</b> ${prevCloseDate} (미동부시각)</p>
             <p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
