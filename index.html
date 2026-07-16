@@ -374,38 +374,51 @@
     }
 
   async function fetchMarketData() {
+    const ticker = (document.getElementById('ticker').value || 'TQQQ').toUpperCase();
     const display = document.getElementById('marketDataDisplay');
-    display.innerHTML = "<p>구글 파이낸스 망에서 정밀 주가 조회 중...</p>";
+    display.innerHTML = `<p>[${ticker}] 구글 마스터 테이블에서 데이터 추출 중...</p>`;
 
-    // 주공께서 제공해주신 무적의 구글 시트 웹 게시 CSV 주소이옵니다.
+    // 주공의 무적의 구글 시트 웹 게시 CSV 주소 (순수 원본 주소로 복원합니다)
     const googleSheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8V-H99QSn5pnP-_CzjSVNYUoqWHfuJvToNb7d0SVrvGjmqhBrGWMac-5XvShi0P6V5aJjMIVi_xUJ/pub?gid=0&single=true&output=csv";
 
     try {
-        // 구글 인프라를 타격하여 0.1초 만에 로딩하며, Failed to fetch 에러가 원천 배제됩니다.
         const response = await fetch(googleSheetCsvUrl);
         if (!response.ok) throw new Error("구글 데이터 서버 응답 실패");
         
         const csvText = await response.text();
         const rows = csvText.trim().split("\n");
         
-        // 최소 20일 이동평균선을 계산하려면 헤더 포함 최소 21행 이상 필요합니다.
         if (rows.length < 21) {
-            throw new Error("구글 스프레드시트 데이터 동기화 대기 중이거나 행이 부족합니다.");
+            throw new Error("구글 스프레드시트 데이터가 부족하거나 동기화 대기 중입니다.");
+        }
+
+        // 1단계: 첫 번째 행(헤더)에서 유저가 입력한 티커의 위치(열 인덱스)를 찾습니다.
+        const headerCols = rows[0].replace(/"/g, "").split(",");
+        let tickerColumnIndex = -1;
+
+        for (let j = 1; j < headerCols.length; j++) {
+            if (headerCols[j].trim().toUpperCase() === ticker) {
+                tickerColumnIndex = j;
+                break;
+            }
+        }
+
+        if (tickerColumnIndex === -1) {
+            throw new Error(`구글 시트에 [${ticker}] 종목이 등록되지 않았습니다. 시트에 수식을 추가해 주십시오.`);
         }
 
         const validData = [];
 
-        // 구글 시트 CSV 파싱 (포맷: Date, Close)
+        // 2단계: 찾아낸 열 인덱스에서 종가 데이터만 정밀 파싱
         for (let i = 1; i < rows.length; i++) {
             const cols = rows[i].replace(/"/g, "").split(",");
-            if (cols.length < 2) continue;
+            if (cols.length <= tickerColumnIndex) continue;
 
-            const dateRaw = cols[0].trim();
-            const closeVal = parseFloat(cols[1].trim());
+            const dateRaw = cols[0].trim(); // 0번 열은 언제나 날짜
+            const closeVal = parseFloat(cols[tickerColumnIndex].trim()); // 선택된 티커의 종가
 
             if (isNaN(closeVal)) continue;
 
-            // 구글 파이낸스의 날짜 형식을 표준 YYYY-MM-DD 포맷으로 강제 통일
             let formattedDate = dateRaw;
             const dateObj = new Date(dateRaw);
             if (!isNaN(dateObj.getTime())) {
@@ -421,7 +434,7 @@
             });
         }
 
-        // 미국 뉴욕 시간대 기준 오늘 날짜 구하기
+        // 미국 뉴욕 시간대 기준 오늘 날짜 및 시각 구하기
         const todayObj = new Date();
         const estFormatter = new Intl.DateTimeFormat("en-US", {
             timeZone: "America/New_York",
@@ -431,31 +444,32 @@
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
-            hour12: false // 24시간 표기 형식으로 정합성 확보
+            hour12: false
         });
         const estParts = estFormatter.formatToParts(todayObj);
-        const estToday = `${estParts.find(p => p.type === 'year').value}-${estParts.find(p => p.type === 'month').value}-${estParts.find(p => p.type === 'day').value}`;
+        
+        const estYear = estParts.find(p => p.type === 'year').value;
+        const estMonth = estParts.find(p => p.type === 'month').value;
+        const estDay = estParts.find(p => p.type === 'day').value;
+        const estToday = `${estYear}-${estMonth}-${estDay}`;
 
-        // 현재 초 단위 시각 추출
         const estHour = estParts.find(p => p.type === 'hour').value;
         const estMin = estParts.find(p => p.type === 'minute').value;
         const estSec = estParts.find(p => p.type === 'second').value;
         const currentEstTime = `${estToday} ${estHour}:${estMin}:${estSec}`;
-        
-        // 오늘 장중에 임시로 갱신된 행이 배열 끝에 들어와 중복을 일으킨다면 제거합니다.
+
         if (validData.length > 0 && validData[validData.length - 1].date === estToday) {
             validData.pop(); 
         }
 
-        // 전일(기준일) 데이터 지정
         const yesterdayIdx = validData.length - 1;
         if (yesterdayIdx < 19) throw new Error("이동평균선 연산을 위한 과거 영업일 데이터가 부족합니다.");
 
         const yesterdayData = validData[yesterdayIdx];
-        const prevClose = yesterdayData.close; // ★ 구글 파이낸스가 엄정하게 내려준 정규장 종가 $75.02가 정확하게 적용됩니다.
+        const prevClose = yesterdayData.close; 
         const prevCloseDate = yesterdayData.date;
 
-        // 5일선 및 20일선 정밀 산출
+        // 3단계: 이평선 산출
         const subsetFor5 = validData.slice(yesterdayIdx - 4, yesterdayIdx + 1);
         const subsetFor20 = validData.slice(yesterdayIdx - 19, yesterdayIdx + 1);
 
@@ -465,12 +479,11 @@
         const isBull = (prevClose > prev5SMA) && (prevClose > prev20SMA);
         const marketType = isBull ? "Case A (상승장)" : "Case B (하락장)";
 
-        // 데이터 저장
         marketInfo = { prevClose, prev5SMA, prev20SMA, marketType };
         
         display.innerHTML = `
-            <p><b>미동부시각:</b> ${currentEstTime} </p>
-            <p><b>전일 종가:</b> $${prevClose.toFixed(2)}</p>
+            <p><b>현재 미동부시각:</b> ${currentEstTime} (EDT/EST)</p>
+            <p><b>[${ticker}] 전일 종가 (${prevCloseDate}):</b> $${prevClose.toFixed(2)}</p>
             <p><b>전일 5일선:</b> $${prev5SMA.toFixed(2)}</p>
             <p><b>전일 20일선:</b> $${prev20SMA.toFixed(2)}</p>
             <p><b>현재 장세:</b> <span class="badge ${isBull ? 'bull' : 'bear'}">${marketType}</span></p>
