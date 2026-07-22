@@ -142,7 +142,7 @@
                             <th style="width: 90px;">기준종가($)</th>
                             <th style="width: 80px;">적립금($)</th>
                             <th style="width: 75px;">리밸런싱</th>
-                            <th>보유주식수</th>
+                            <th style="width: 85px;">보유주식수</th>
                             <th>실제 체결가($)</th>
                             <th>주식평가금($)</th>
                             <th>현금Pool($)</th>
@@ -170,7 +170,7 @@
 <script>
 // Default Clean Starting Ledger
 const defaultLedger = [
-    { date: '2024-01-02', price: 100.00, deposit: 0, rebal: 'N', tradePrice: '', tradeQty: '' },
+    { date: '2026-07-02', price: 70.00, deposit: 0, rebal: 'N', shares: 0, tradePrice: '', tradeQty: '' },
 ];
 
 let ledgerData = [];
@@ -255,13 +255,18 @@ function renderTable() {
         if (idx === 0) {
             // First Row: Initial Capital Allocation
             let initPrice = price > 0 ? price : 100;
-            // 75% target stock allocation
             let targetStockValue = initialCapital * (1 - refRatio);
             
-            // Initial Shares (Integer)
-            shares = Math.floor(targetStockValue / initPrice);
+            // Default Initial Shares (Integer)
+            let defaultShares = Math.floor(targetStockValue / initPrice);
             
-            // Actual Trade Price in Row 0 if typed, otherwise default to initPrice
+            // Check if user manually entered custom shares
+            if (row.shares !== undefined && row.shares !== '') {
+                shares = parseInt(row.shares) || 0;
+            } else {
+                shares = defaultShares;
+            }
+
             let actualTradePrice = (row.tradePrice !== undefined && row.tradePrice !== '') ? parseFloat(row.tradePrice) : initPrice;
             
             // Initial Cash Pool
@@ -279,15 +284,13 @@ function renderTable() {
             signal = 'INITIAL';
             recOrderQty = 0;
 
-            // Set running states
             runningShares = shares;
             runningCash = cash;
             runningV = vFinal;
         } else {
-            // Subsequent Rows: calculate based on previous row's execution
+            // Subsequent Rows
             let prevRow = ledgerData[idx - 1];
             
-            // Determine Executed Quantity of PREVIOUS Row
             let prevExecutedQty = 0;
             if (prevRow.tradeQty !== undefined && prevRow.tradeQty !== '') {
                 prevExecutedQty = parseInt(prevRow.tradeQty);
@@ -295,14 +298,20 @@ function renderTable() {
                 prevExecutedQty = prevRow._computedRecOrderQty;
             }
 
-            // Determine Executed Price of PREVIOUS Row
             let prevExecutedPrice = (prevRow.tradePrice !== undefined && prevRow.tradePrice !== '') ? parseFloat(prevRow.tradePrice) : (parseFloat(prevRow.price) || 0);
 
-            // Update Shares and Cash Pool for current row
-            shares = runningShares + prevExecutedQty;
+            // Default calculated shares
+            let calcShares = runningShares + prevExecutedQty;
+
+            // Check if user manually overridden current row shares
+            if (row.shares !== undefined && row.shares !== '') {
+                shares = parseInt(row.shares) || 0;
+            } else {
+                shares = calcShares;
+            }
+
             cash = runningCash + deposit - (prevExecutedQty * prevExecutedPrice);
 
-            // Today's Valuation Price
             let actualTradePrice = (row.tradePrice !== undefined && row.tradePrice !== '') ? parseFloat(row.tradePrice) : price;
             let evalPrice = actualTradePrice > 0 ? actualTradePrice : price;
 
@@ -320,7 +329,6 @@ function renderTable() {
             upper = vFinal * (1 + band);
             lower = vFinal * (1 - band);
 
-            // Signal & Recommended Order Quantity (Integer) based on Closing Price
             if (price > 0) {
                 if (evalVal > upper) {
                     signal = 'SELL';
@@ -337,16 +345,13 @@ function renderTable() {
                 }
             }
 
-            // Update running state for next iteration
             runningShares = shares;
             runningCash = cash;
             runningV = vFinal;
         }
 
-        // Store computed recommended quantity on row object for next iteration reference
         row._computedRecOrderQty = recOrderQty;
 
-        // Badge styling
         let badgeClass = 'badge-hold';
         if (signal === 'BUY') badgeClass = 'badge-buy';
         else if (signal === 'SELL') badgeClass = 'badge-sell';
@@ -362,7 +367,7 @@ function renderTable() {
                     <option value="Y" ${row.rebal === 'Y' ? 'selected' : ''}>Y</option>
                 </select>
             </td>
-            <td class="text-end fw-bold text-primary">${shares.toLocaleString()}주</td>
+            <td><input type="number" step="1" class="form-control form-control-sm input-cell text-end fw-bold text-primary" placeholder="${shares}" value="${row.shares !== undefined ? row.shares : ''}" onchange="updateRow(${idx}, 'shares', this.value)"></td>
             <td><input type="number" step="0.01" class="form-control form-control-sm trade-cell text-end" placeholder="${price}" value="${row.tradePrice !== undefined ? row.tradePrice : ''}" onchange="updateRow(${idx}, 'tradePrice', this.value)"></td>
             <td class="text-end fw-semibold">$${evalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="text-end">$${cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -384,7 +389,7 @@ function renderTable() {
 }
 
 function updateRow(index, field, value) {
-    if (field === 'price' || field === 'deposit' || field === 'tradePrice' || field === 'tradeQty') {
+    if (field === 'price' || field === 'deposit' || field === 'shares' || field === 'tradePrice' || field === 'tradeQty') {
         ledgerData[index][field] = value !== '' ? value : '';
     } else {
         ledgerData[index][field] = value;
@@ -400,15 +405,11 @@ function addRow() {
         d.setDate(d.getDate() + 14);
         nextDate = d.toISOString().split('T')[0];
     }
-    ledgerData.push({ date: nextDate, price: lastRow ? lastRow.price : 100, deposit: 0, rebal: 'N', tradePrice: '', tradeQty: '' });
+    ledgerData.push({ date: nextDate, price: lastRow ? lastRow.price : 100, deposit: 0, rebal: 'N', shares: '', tradePrice: '', tradeQty: '' });
     saveAndRecalculate();
 }
 
 function deleteRow(index) {
-    if (ledgerData.length <= 1) {
-        alert("최소 하나의 행은 존재해야 합니다.");
-        return;
-    }
     ledgerData.splice(index, 1);
     saveAndRecalculate();
 }
