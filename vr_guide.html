@@ -125,11 +125,13 @@
 
     <!-- 2. Ledger Table -->
     <div class="card card-custom">
-        <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+        <div class="card-header card-header-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>📊 2. 주기별 매매 기록 및 자동 계산 가이드</span>
             <div>
-                <button class="btn btn-sm btn-primary me-2" onclick="addRow()">+ 행 추가</button>
-                <button class="btn btn-sm btn-success me-2" onclick="saveData()">💾 데이터 저장</button>
+                <button class="btn btn-sm btn-primary me-1" onclick="addRow()">+ 행 추가</button>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="exportJSON()">📥 백업 파일 받기 (JSON)</button>
+                <button class="btn btn-sm btn-outline-success me-1" onclick="document.getElementById('importFile').click()">📤 불러오기 (JSON)</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
                 <button class="btn btn-sm btn-outline-danger" onclick="clearData()">초기화</button>
             </div>
         </div>
@@ -170,7 +172,7 @@
 <script>
 // Default Clean Starting Ledger
 const defaultLedger = [
-    { date: '2026-07-02', price: 70.00, deposit: 0, rebal: 'N', shares: 0, tradePrice: '', tradeQty: '' },
+    { date: '2024-01-02', price: 100.00, deposit: 0, rebal: 'N', shares: '', tradePrice: '', tradeQty: '' },
 ];
 
 let ledgerData = [];
@@ -199,12 +201,8 @@ function saveData() {
     localStorage.setItem('vr_ledger', JSON.stringify(ledgerData));
 
     const statusBadge = document.getElementById('saveStatus');
-    statusBadge.innerText = '💾 저장 완료!';
-    statusBadge.className = 'badge bg-success';
-    setTimeout(() => {
-        statusBadge.innerText = '자동 저장됨';
-        statusBadge.className = 'badge bg-secondary';
-    }, 2000);
+    statusBadge.innerText = '💾 자동 저장됨';
+    statusBadge.className = 'badge bg-secondary';
 }
 
 function loadData() {
@@ -226,6 +224,63 @@ function loadData() {
     }
     
     saveAndRecalculate();
+}
+
+// 📥 JSON 파일로 내보내기 (다운로드)
+function exportJSON() {
+    const backupData = {
+        params: {
+            capital: document.getElementById('paramCapital').value,
+            g: document.getElementById('paramG').value,
+            refRatio: document.getElementById('paramRefRatio').value,
+            band: document.getElementById('paramBand').value,
+            deposit: document.getElementById('paramDeposit').value
+        },
+        ledger: ledgerData
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    
+    const today = new Date().toISOString().split('T')[0];
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `VR_Calculator_Backup_${today}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+}
+
+// 📤 JSON 파일 읽어오기 (업로드)
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (importedData.params && importedData.ledger) {
+                // 파라미터 적용
+                document.getElementById('paramCapital').value = importedData.params.capital || 10000;
+                document.getElementById('paramG').value = importedData.params.g || 10;
+                document.getElementById('paramRefRatio').value = importedData.params.refRatio || 0.25;
+                document.getElementById('paramBand').value = importedData.params.band || 0.15;
+                document.getElementById('paramDeposit').value = importedData.params.deposit || 500;
+                
+                // 원장 적용
+                ledgerData = importedData.ledger;
+
+                saveAndRecalculate();
+                alert("🎉 데이터 불러오기가 완료되었습니다!");
+            } else {
+                alert("❌ 유효하지 않은 VR 계산기 파일 형식입니다.");
+            }
+        } catch (err) {
+            alert("❌ 파일 해석 중 오류가 발생했습니다.");
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // 동일 파일 재업로드 지원용 리셋
 }
 
 function renderTable() {
@@ -253,14 +308,10 @@ function renderTable() {
         let vTemp = 0, vFinal = 0, upper = 0, lower = 0, signal = 'HOLD', recOrderQty = 0;
 
         if (idx === 0) {
-            // First Row: Initial Capital Allocation
             let initPrice = price > 0 ? price : 100;
             let targetStockValue = initialCapital * (1 - refRatio);
-            
-            // Default Initial Shares (Integer)
             let defaultShares = Math.floor(targetStockValue / initPrice);
             
-            // Check if user manually entered custom shares
             if (row.shares !== undefined && row.shares !== '') {
                 shares = parseInt(row.shares) || 0;
             } else {
@@ -268,8 +319,6 @@ function renderTable() {
             }
 
             let actualTradePrice = (row.tradePrice !== undefined && row.tradePrice !== '') ? parseFloat(row.tradePrice) : initPrice;
-            
-            // Initial Cash Pool
             cash = initialCapital - (shares * actualTradePrice);
 
             let evalPrice = actualTradePrice > 0 ? actualTradePrice : initPrice;
@@ -288,7 +337,6 @@ function renderTable() {
             runningCash = cash;
             runningV = vFinal;
         } else {
-            // Subsequent Rows
             let prevRow = ledgerData[idx - 1];
             
             let prevExecutedQty = 0;
@@ -300,10 +348,8 @@ function renderTable() {
 
             let prevExecutedPrice = (prevRow.tradePrice !== undefined && prevRow.tradePrice !== '') ? parseFloat(prevRow.tradePrice) : (parseFloat(prevRow.price) || 0);
 
-            // Default calculated shares
             let calcShares = runningShares + prevExecutedQty;
 
-            // Check if user manually overridden current row shares
             if (row.shares !== undefined && row.shares !== '') {
                 shares = parseInt(row.shares) || 0;
             } else {
