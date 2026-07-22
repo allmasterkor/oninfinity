@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR (Value Rebalancing) 동적 매매 가이드 계산기</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-navy: #1F4E78;
+            --accent-blue: #2F5597;
+            --bg-light: #F8F9FA;
+            --input-yellow: #FFF9C4;
+            --trade-green: #E8F5E9;
+        }
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            padding-bottom: 50px;
+        }
+        .header-banner {
+            background: linear-gradient(135deg, var(--primary-navy), var(--accent-blue));
+            color: white;
+            padding: 25px 40px;
+            border-bottom: 4px solid #102a43;
+            margin-bottom: 25px;
+        }
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background: white;
+            margin-bottom: 25px;
+        }
+        .card-header-custom {
+            background-color: #f1f4f9;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: bold;
+            color: var(--primary-navy);
+            padding: 12px 20px;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .table-responsive {
+            max-height: 750px;
+            overflow-y: auto;
+        }
+        table.vr-table {
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+        table.vr-table th {
+            position: sticky;
+            top: 0;
+            background-color: var(--accent-blue) !important;
+            color: white !important;
+            text-align: center;
+            vertical-align: middle;
+            z-index: 10;
+        }
+        .input-cell {
+            background-color: var(--input-yellow) !important;
+            font-weight: 600;
+        }
+        .trade-cell {
+            background-color: var(--trade-green) !important;
+            font-weight: 600;
+        }
+        .badge-buy { background-color: #d32f2f; color: white; }
+        .badge-sell { background-color: #1976d2; color: white; }
+        .badge-hold { background-color: #757575; color: white; }
+        .badge-init { background-color: #388e3c; color: white; }
+        .form-control-sm, .form-select-sm {
+            font-size: 0.8rem;
+            padding: 2px 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-banner text-center text-md-start">
+    <div class="container-fluid">
+        <h2 class="fw-bold mb-1">■ VR (Value Rebalancing) 동적 매매 가이드 계산기</h2>
+        <p class="mb-0 text-white-50">보유주식수/현금 연동 자동 계산 & 정수 단주 주문 및 저장 지원</p>
+    </div>
+</div>
+
+<div class="container-fluid px-3">
+    <!-- 1. Parameter Settings -->
+    <div class="card card-custom">
+        <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+            <span>⚙️ 1. 파라미터 설정</span>
+            <span class="badge bg-secondary" id="saveStatus">자동 저장됨</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold text-muted small">초기 자본금 ($)</label>
+                    <input type="number" id="paramCapital" class="form-control form-control-sm" value="10000" onchange="saveAndRecalculate()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold text-muted small">G (기울기 제어변수)</label>
+                    <input type="number" id="paramG" class="form-control form-control-sm" value="10" onchange="saveAndRecalculate()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold text-muted small">기본 기울기 (Base Slope)</label>
+                    <input type="text" id="paramBaseSlope" class="form-control form-control-sm bg-light" value="0.0100" readonly>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold text-muted small">기준 현금비중 (Ref Ratio)</label>
+                    <input type="number" id="paramRefRatio" class="form-control form-control-sm" value="0.25" step="0.01" onchange="saveAndRecalculate()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold text-muted small">리밸런싱 밴드 (%)</label>
+                    <input type="number" id="paramBand" class="form-control form-control-sm" value="0.15" step="0.01" onchange="saveAndRecalculate()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold text-muted small">월 적립금 ($)</label>
+                    <input type="number" id="paramDeposit" class="form-control form-control-sm" value="500" onchange="saveAndRecalculate()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Ledger Table -->
+    <div class="card card-custom">
+        <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+            <span>📊 2. 주기별 매매 기록 및 자동 계산 가이드</span>
+            <div>
+                <button class="btn btn-sm btn-primary me-2" onclick="addRow()">+ 행 추가</button>
+                <button class="btn btn-sm btn-success me-2" onclick="saveData()">💾 데이터 저장</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearData()">초기화</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered vr-table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">날짜</th>
+                            <th style="width: 90px;">기준종가($)</th>
+                            <th style="width: 80px;">적립금($)</th>
+                            <th style="width: 75px;">리밸런싱</th>
+                            <th>보유주식수</th>
+                            <th>실제 체결가($)</th>
+                            <th>주식평가금($)</th>
+                            <th>현금Pool($)</th>
+                            <th>총자산($)</th>
+                            <th>현금비율</th>
+                            <th>V_temp</th>
+                            <th>최종V</th>
+                            <th>매도상단($)</th>
+                            <th>매수하단($)</th>
+                            <th>신호</th>
+                            <th>권장수량(정수)</th>
+                            <th>실제 체결수량</th>
+                            <th style="width: 45px;">삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vrTableBody">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Default Clean Starting Ledger
+const defaultLedger = [
+    { date: '2024-01-02', price: 100.00, deposit: 0, rebal: 'N', tradePrice: '', tradeQty: '' },
+];
+
+let ledgerData = [];
+
+document.addEventListener("DOMContentLoaded", function() {
+    loadData();
+});
+
+function saveAndRecalculate() {
+    const g = parseFloat(document.getElementById('paramG').value) || 10;
+    const baseSlope = 0.1 / g;
+    document.getElementById('paramBaseSlope').value = baseSlope.toFixed(4);
+    renderTable();
+    saveData();
+}
+
+function saveData() {
+    const params = {
+        capital: document.getElementById('paramCapital').value,
+        g: document.getElementById('paramG').value,
+        refRatio: document.getElementById('paramRefRatio').value,
+        band: document.getElementById('paramBand').value,
+        deposit: document.getElementById('paramDeposit').value
+    };
+    localStorage.setItem('vr_params', JSON.stringify(params));
+    localStorage.setItem('vr_ledger', JSON.stringify(ledgerData));
+
+    const statusBadge = document.getElementById('saveStatus');
+    statusBadge.innerText = '💾 저장 완료!';
+    statusBadge.className = 'badge bg-success';
+    setTimeout(() => {
+        statusBadge.innerText = '자동 저장됨';
+        statusBadge.className = 'badge bg-secondary';
+    }, 2000);
+}
+
+function loadData() {
+    const savedParams = localStorage.getItem('vr_params');
+    if (savedParams) {
+        const p = JSON.parse(savedParams);
+        if (p.capital) document.getElementById('paramCapital').value = p.capital;
+        if (p.g) document.getElementById('paramG').value = p.g;
+        if (p.refRatio) document.getElementById('paramRefRatio').value = p.refRatio;
+        if (p.band) document.getElementById('paramBand').value = p.band;
+        if (p.deposit) document.getElementById('paramDeposit').value = p.deposit;
+    }
+
+    const savedLedger = localStorage.getItem('vr_ledger');
+    if (savedLedger) {
+        ledgerData = JSON.parse(savedLedger);
+    } else {
+        ledgerData = JSON.parse(JSON.stringify(defaultLedger));
+    }
+    
+    saveAndRecalculate();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('vrTableBody');
+    tbody.innerHTML = '';
+
+    const initialCapital = parseFloat(document.getElementById('paramCapital').value) || 10000;
+    const g = parseFloat(document.getElementById('paramG').value) || 10;
+    const baseSlope = 0.1 / g;
+    const refRatio = parseFloat(document.getElementById('paramRefRatio').value) || 0.25;
+    const band = parseFloat(document.getElementById('paramBand').value) || 0.15;
+
+    let runningShares = 0;
+    let runningCash = 0;
+    let runningV = 0;
+
+    ledgerData.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+
+        const price = parseFloat(row.price) || 0;
+        const deposit = parseFloat(row.deposit) || 0;
+        const isRebal = (row.rebal === 'Y');
+
+        let shares = 0, evalVal = 0, cash = 0, totalVal = 0, cashRatio = 0;
+        let vTemp = 0, vFinal = 0, upper = 0, lower = 0, signal = 'HOLD', recOrderQty = 0;
+
+        if (idx === 0) {
+            // First Row: Initial Capital Allocation
+            let initPrice = price > 0 ? price : 100;
+            // 75% target stock allocation
+            let targetStockValue = initialCapital * (1 - refRatio);
+            
+            // Initial Shares (Integer)
+            shares = Math.floor(targetStockValue / initPrice);
+            
+            // Actual Trade Price in Row 0 if typed, otherwise default to initPrice
+            let actualTradePrice = (row.tradePrice !== undefined && row.tradePrice !== '') ? parseFloat(row.tradePrice) : initPrice;
+            
+            // Initial Cash Pool
+            cash = initialCapital - (shares * actualTradePrice);
+
+            let evalPrice = actualTradePrice > 0 ? actualTradePrice : initPrice;
+            evalVal = shares * evalPrice;
+            totalVal = evalVal + cash;
+            cashRatio = totalVal > 0 ? (cash / totalVal) : refRatio;
+
+            vTemp = shares * evalPrice;
+            vFinal = vTemp;
+            upper = vFinal * (1 + band);
+            lower = vFinal * (1 - band);
+            signal = 'INITIAL';
+            recOrderQty = 0;
+
+            // Set running states
+            runningShares = shares;
+            runningCash = cash;
+            runningV = vFinal;
+        } else {
+            // Subsequent Rows: calculate based on previous row's execution
+            let prevRow = ledgerData[idx - 1];
+            
+            // Determine Executed Quantity of PREVIOUS Row
+            let prevExecutedQty = 0;
+            if (prevRow.tradeQty !== undefined && prevRow.tradeQty !== '') {
+                prevExecutedQty = parseInt(prevRow.tradeQty);
+            } else if (prevRow._computedRecOrderQty !== undefined) {
+                prevExecutedQty = prevRow._computedRecOrderQty;
+            }
+
+            // Determine Executed Price of PREVIOUS Row
+            let prevExecutedPrice = (prevRow.tradePrice !== undefined && prevRow.tradePrice !== '') ? parseFloat(prevRow.tradePrice) : (parseFloat(prevRow.price) || 0);
+
+            // Update Shares and Cash Pool for current row
+            shares = runningShares + prevExecutedQty;
+            cash = runningCash + deposit - (prevExecutedQty * prevExecutedPrice);
+
+            // Today's Valuation Price
+            let actualTradePrice = (row.tradePrice !== undefined && row.tradePrice !== '') ? parseFloat(row.tradePrice) : price;
+            let evalPrice = actualTradePrice > 0 ? actualTradePrice : price;
+
+            evalVal = shares * evalPrice;
+            totalVal = evalVal + cash;
+            cashRatio = totalVal > 0 ? (cash / totalVal) : 0;
+
+            vTemp = runningV + deposit;
+            if (isRebal) {
+                vFinal = vTemp * (1 + baseSlope * (cashRatio / refRatio));
+            } else {
+                vFinal = vTemp;
+            }
+
+            upper = vFinal * (1 + band);
+            lower = vFinal * (1 - band);
+
+            // Signal & Recommended Order Quantity (Integer) based on Closing Price
+            if (price > 0) {
+                if (evalVal > upper) {
+                    signal = 'SELL';
+                    let rawQty = (evalVal - vFinal) / price;
+                    recOrderQty = -Math.floor(rawQty); 
+                } else if (evalVal < lower) {
+                    signal = 'BUY';
+                    let buyAmt = Math.min(cash, vFinal - evalVal);
+                    let rawQty = buyAmt / price;
+                    recOrderQty = Math.floor(rawQty);
+                } else {
+                    signal = 'HOLD';
+                    recOrderQty = 0;
+                }
+            }
+
+            // Update running state for next iteration
+            runningShares = shares;
+            runningCash = cash;
+            runningV = vFinal;
+        }
+
+        // Store computed recommended quantity on row object for next iteration reference
+        row._computedRecOrderQty = recOrderQty;
+
+        // Badge styling
+        let badgeClass = 'badge-hold';
+        if (signal === 'BUY') badgeClass = 'badge-buy';
+        else if (signal === 'SELL') badgeClass = 'badge-sell';
+        else if (signal === 'INITIAL') badgeClass = 'badge-init';
+
+        tr.innerHTML = `
+            <td><input type="date" class="form-control form-control-sm input-cell" value="${row.date || ''}" onchange="updateRow(${idx}, 'date', this.value)"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm input-cell text-end" value="${row.price || ''}" onchange="updateRow(${idx}, 'price', this.value)"></td>
+            <td><input type="number" class="form-control form-control-sm text-end" value="${deposit}" onchange="updateRow(${idx}, 'deposit', this.value)"></td>
+            <td>
+                <select class="form-select form-select-sm text-center" onchange="updateRow(${idx}, 'rebal', this.value)">
+                    <option value="N" ${row.rebal === 'N' ? 'selected' : ''}>N</option>
+                    <option value="Y" ${row.rebal === 'Y' ? 'selected' : ''}>Y</option>
+                </select>
+            </td>
+            <td class="text-end fw-bold text-primary">${shares.toLocaleString()}주</td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm trade-cell text-end" placeholder="${price}" value="${row.tradePrice !== undefined ? row.tradePrice : ''}" onchange="updateRow(${idx}, 'tradePrice', this.value)"></td>
+            <td class="text-end fw-semibold">$${evalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end">$${cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end fw-bold">$${totalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end">${(cashRatio * 100).toFixed(1)}%</td>
+            <td class="text-end">$${vTemp.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end fw-bold text-primary">$${vFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end text-danger">$${upper.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end text-success">$${lower.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-center"><span class="badge ${badgeClass}">${signal}</span></td>
+            <td class="text-end fw-bold ${recOrderQty > 0 ? 'text-danger' : (recOrderQty < 0 ? 'text-primary' : '')}">
+                ${recOrderQty !== 0 ? recOrderQty.toLocaleString() + '주' : '-'}
+            </td>
+            <td><input type="number" step="1" class="form-control form-control-sm trade-cell text-end" placeholder="${recOrderQty}" value="${row.tradeQty !== undefined ? row.tradeQty : ''}" onchange="updateRow(${idx}, 'tradeQty', this.value)"></td>
+            <td class="text-center"><button class="btn btn-sm btn-outline-danger p-0 px-1" onclick="deleteRow(${idx})">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function updateRow(index, field, value) {
+    if (field === 'price' || field === 'deposit' || field === 'tradePrice' || field === 'tradeQty') {
+        ledgerData[index][field] = value !== '' ? value : '';
+    } else {
+        ledgerData[index][field] = value;
+    }
+    saveAndRecalculate();
+}
+
+function addRow() {
+    const lastRow = ledgerData[ledgerData.length - 1];
+    let nextDate = '';
+    if (lastRow && lastRow.date) {
+        let d = new Date(lastRow.date);
+        d.setDate(d.getDate() + 14);
+        nextDate = d.toISOString().split('T')[0];
+    }
+    ledgerData.push({ date: nextDate, price: lastRow ? lastRow.price : 100, deposit: 0, rebal: 'N', tradePrice: '', tradeQty: '' });
+    saveAndRecalculate();
+}
+
+function deleteRow(index) {
+    if (ledgerData.length <= 1) {
+        alert("최소 하나의 행은 존재해야 합니다.");
+        return;
+    }
+    ledgerData.splice(index, 1);
+    saveAndRecalculate();
+}
+
+function clearData() {
+    if (confirm("모든 입력 데이터를 초기화하시겠습니까?")) {
+        localStorage.removeItem('vr_params');
+        localStorage.removeItem('vr_ledger');
+        ledgerData = JSON.parse(JSON.stringify(defaultLedger));
+        saveAndRecalculate();
+    }
+}
+</script>
+
+</body>
+</html>
