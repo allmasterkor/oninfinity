@@ -379,9 +379,10 @@
     const display = document.getElementById('marketDataDisplay');
     display.innerHTML = `<p>[${ticker}] 구글 마스터 테이블에서 데이터 추출 중...</p>`;
 
-    // 주공의 무적의 구글 시트 웹 게시 CSV 주소 (순수 원본 주소로 복원합니다)
-    const googleSheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8V-H99QSn5pnP-_CzjSVNYUoqWHfuJvToNb7d0SVrvGjmqhBrGWMac-5XvShi0P6V5aJjMIVi_xUJ/pub?gid=0&single=true&output=csv";
-
+    // 캐시 방지를 위해 현재 시간의 타임스탬프를 쿼리 파라미터로 동적 추가
+    const baseCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8V-H99QSn5pnP-_CzjSVNYUoqWHfuJvToNb7d0SVrvGjmqhBrGWMac-5XvShi0P6V5aJjMIVi_xUJ/pub?gid=0&single=true&output=csv";
+    const googleSheetCsvUrl = `${baseCsvUrl}&_nocache=${new Date().getTime()}`;
+      
     try {
         const response = await fetch(googleSheetCsvUrl);
         if (!response.ok) throw new Error("구글 데이터 서버 응답 실패");
