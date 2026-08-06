@@ -632,7 +632,7 @@
         }
 
         if (isCleared) {
-            executeClearance(tradeDate, sellPrice);
+            await executeClearance(tradeDate, sellPrice);
         } else {
             acc.current_phase += 1;
             alert(`${acc.current_phase - 1}회차 기록 완료!`);
@@ -692,6 +692,17 @@
 
         document.getElementById('initialAssetInput').value = acc.initial_asset.toFixed(2);
         localStorage.setItem('gist_initial_asset', acc.initial_asset.toFixed(2));
+		
+		// [핵심 추가] 초기화된 appData를 Gist 서버에 즉시 업데이트
+		const gistId = localStorage.getItem('gist_id');
+		const token = localStorage.getItem('gist_token');
+		if (gistId && token) {
+			try {
+				await saveToGist(gistId, token, appData);
+			} catch (e) {
+				console.error("청산 후 Gist 업데이트 실패:", e);
+			}
+		}
     }
 
     async function deleteLastPhase() {
@@ -782,7 +793,7 @@
         if (!acc.start_market_type) acc.start_market_type = marketInfo ? marketInfo.marketType : "지정 안 됨";
         if (!acc.start_date) acc.start_date = tradeDate;
 
-        executeClearance(tradeDate, actualClose);
+        await executeClearance(tradeDate, actualClose);
 
         try {
             await saveToGist(gistId, token, allData);
