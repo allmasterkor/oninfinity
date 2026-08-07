@@ -652,7 +652,7 @@
     }
 
     // [미완성이었던 주기 정산(executeClearance) 및 UI 보조 함수 보완 구현]
-    function executeClearance(clearDate, sellPrice) {
+    async function executeClearance(clearDate, sellPrice) {
         let acc = appData.account;
         let sellRevenue = acc.total_shares * sellPrice;
         acc.current_cash += sellRevenue;
