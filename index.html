@@ -526,7 +526,7 @@
 
         let targetInvest = dailyBudget * multiplier;
         let buyQty = Math.floor(targetInvest / marketInfo.prevClose);
-        let locPrice = marketInfo.prevClose * 1.1;
+        let locPrice = marketInfo.prevClose * 1.04;
 
         let buyGuideHtml = "";
         if (phase >= maxPhase || currentCash < (buyQty * marketInfo.prevClose)) {
